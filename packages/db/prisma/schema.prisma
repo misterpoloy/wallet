@@ -1,0 +1,448 @@
+// =============================================================================
+// Wallet — Prisma Schema
+// DB: Neon (serverless Postgres)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Currency {
+  MXN
+  GTQ
+  USD
+  COP   // Colombian Peso
+  TRY   // Turkish Lira
+  EGP   // Egyptian Pound
+  EUR   // Euro
+}
+
+enum AccountType {
+  checking
+  savings
+  credit_card
+  debit
+  cash
+}
+
+enum CardNetwork {
+  visa
+  mastercard
+  amex
+}
+
+enum TransactionType {
+  expense
+  income
+  transfer
+}
+
+enum PaymentType {
+  debit
+  credit_card
+  cash
+}
+
+enum RecurringFrequency {
+  daily
+  weekly
+  twice_monthly
+  monthly
+  quarterly
+  annual
+}
+
+enum TenantPlan {
+  personal
+  family
+  business
+}
+
+enum MemberRole {
+  owner
+  admin
+  viewer
+}
+
+enum ImportStatus {
+  pending
+  processing
+  done
+  error
+}
+
+enum IncomeType {
+  salary
+  freelance
+  rental
+  dividend
+  bonus
+  other
+}
+
+enum PayFrequency {
+  weekly
+  biweekly
+  semimonthly  // quincenal: paid on the 15th & last day (24×/year)
+  monthly
+  quarterly
+  annual
+}
+
+enum EntryStatus {
+  expected
+  received
+  partial
+  missed
+  skipped
+}
+
+enum LoanType {
+  personal
+  auto
+  mortgage
+  student
+  credit_line
+}
+
+enum PaymentStatus {
+  scheduled
+  paid
+  partial
+  missed
+  skipped
+}
+
+// =============================================================================
+// TENANT (multi-tenancy root)
+// =============================================================================
+
+model Tenant {
+  id        String     @id @default(cuid())
+  name      String
+  plan      TenantPlan @default(personal)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  members            TenantMember[]
+  accounts           Account[]
+  transactions       Transaction[]
+  recurringExpenses  RecurringExpense[]
+  importBatches      ImportBatch[]
+  incomeSources      IncomeSource[]
+  loans              Loan[]
+}
+
+// =============================================================================
+// USER / TENANT MEMBERSHIP
+// =============================================================================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  avatarColor String   @default("#7c3aed")
+  timezone    String   @default("America/Mexico_City")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships TenantMember[]
+}
+
+model TenantMember {
+  id       String     @id @default(cuid())
+  tenantId String
+  userId   String
+  role     MemberRole @default(viewer)
+  joinedAt DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+// =============================================================================
+// ACCOUNT
+// Unified model — covers bank accounts AND credit cards
+// =============================================================================
+
+model Account {
+  id          String      @id @default(cuid())
+  tenantId    String
+  name        String                       // "BBVA 0270", "BI Quetzales"
+  nameRaw     String?                      // original CSV name before normalization
+  institution String                       // "BBVA", "Banco Industrial", "Promerica"
+  accountType AccountType
+  currency    Currency
+  lastFour    String?                      // last 4 digits (manual, not in CSV)
+  color       String      @default("#7c3aed") // gradient start color for UI
+  colorEnd    String      @default("#06b6d4") // gradient end color
+
+  // Credit-card specific
+  creditLimit     Decimal?    @db.Decimal(15, 2)
+  network         CardNetwork?
+
+  // Starting-point offset for accounts with partial history.
+  // currentBalance is the authoritative O(1) balance; initialBalance is baked into it.
+  initialBalance  Decimal?    @db.Decimal(15, 2)
+  // Pre-computed authoritative balance. Updated atomically on every transaction write.
+  // Bank/debit/cash: money you have. Credit card: amount owed.
+  currentBalance  Decimal     @default(0) @db.Decimal(15, 2)
+
+  // Branding / links
+  logoUrl     String?                      // institution logo image URL
+  actionUrl   String?                      // "Open account" deep-link / online banking URL
+
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?                      // "user" | "agent:import" | "agent"
+  updatedBy   String?                      // "user" | "agent:import" | "agent"
+
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]      @relation("AccountTransactions")
+  transfersFrom        Transaction[]      @relation("TransferFrom")
+  recurringExpenses    RecurringExpense[]
+  incomeSources        IncomeSource[]
+
+  @@unique([tenantId, name, currency])
+  @@index([tenantId])
+}
+
+// =============================================================================
+// TRANSACTION
+// =============================================================================
+
+model Transaction {
+  id          String          @id @default(cuid())
+  tenantId    String
+  accountId   String
+
+  // Category
+  category    String                       // normalized: "Technology", "Dining"…
+  categoryRaw String                       // original CSV: "Software, apps, games"
+
+  // Amounts
+  currency    Currency
+  amount      Decimal         @db.Decimal(15, 2)  // in original currency
+  refAmount   Decimal         @db.Decimal(15, 2)  // MXN equivalent
+  refCurrency Currency        @default(MXN)
+  fxRate      Decimal?        @db.Decimal(10, 6)  // amount → refAmount rate
+
+  // Classification
+  type        TransactionType
+  paymentType PaymentType
+  note        String?
+  payee       String?
+  labels      String[]        @default([])
+
+  // Dates
+  date        DateTime
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Transfer linking
+  isTransfer       Boolean  @default(false)
+  transferGroupId  String?                 // shared UUID between both legs
+  transferToId     String?                 // FK to the other Account (destination)
+
+  // Recurring linking
+  isRecurring  Boolean @default(false)
+  recurringId  String?
+
+  // Import tracking
+  importBatchId String?
+  contentHash   String?                   // SHA256 for dedup on re-import
+
+  // Authorship / modification trail
+  createdBy   String?                      // "user" | "agent:import" | "agent:adjustment"
+  updatedBy   String?                      // same values — who last changed this row
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account     Account          @relation("AccountTransactions", fields: [accountId], references: [id])
+  transferTo  Account?         @relation("TransferFrom", fields: [transferToId], references: [id])
+  recurring   RecurringExpense? @relation(fields: [recurringId], references: [id])
+  importBatch ImportBatch?     @relation(fields: [importBatchId], references: [id])
+
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, accountId])
+  @@index([transferGroupId])
+  @@index([contentHash])
+  @@index([isRecurring])
+}
+
+// =============================================================================
+// RECURRING EXPENSE
+// =============================================================================
+
+model RecurringExpense {
+  id          String             @id @default(cuid())
+  tenantId    String
+  accountId   String
+  name        String
+  category    String
+  categoryRaw String?
+  currency    Currency
+  amount      Decimal            @db.Decimal(15, 2)
+  refAmount   Decimal?           @db.Decimal(15, 2)  // MXN equivalent
+  frequency   RecurringFrequency @default(monthly)
+  dayOfMonth  Int?               // 1-31 for monthly
+  daysOfMonth Int[]              @default([])        // for twice_monthly
+  isActive    Boolean            @default(true)
+  nextDueDate DateTime?
+  detectedFrom String?           // e.g. "csv_import_2026"
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account      Account       @relation(fields: [accountId], references: [id])
+  transactions Transaction[]
+
+  @@index([tenantId])
+  @@index([isActive, nextDueDate])
+}
+
+// =============================================================================
+// IMPORT BATCH
+// Tracks each CSV import run
+// =============================================================================
+
+model ImportBatch {
+  id           String       @id @default(cuid())
+  tenantId     String
+  filename     String
+  year         Int
+  rowCount     Int          @default(0)
+  importedRows Int          @default(0)
+  skippedRows  Int          @default(0)          // duplicates skipped
+  status       ImportStatus @default(pending)
+  errorMessage String?
+  importedAt   DateTime     @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([tenantId])
+}
+
+// =============================================================================
+// INCOME SOURCE + ENTRIES
+// Tracks recurring income (salary, freelance, etc.) with per-month status
+// =============================================================================
+
+model IncomeSource {
+  id           String       @id @default(cuid())
+  tenantId     String
+  name         String                           // "Calaps Salary"
+  type         IncomeType   @default(salary)
+  employer     String?                          // "Calaps"
+  currency     Currency     @default(MXN)
+  grossAmount  Decimal      @db.Decimal(15, 2)  // expected gross per period
+  netAmount    Decimal?     @db.Decimal(15, 2)  // take-home after taxes
+  frequency    PayFrequency @default(monthly)
+  startDate    DateTime
+  endDate      DateTime?                        // null = still active
+  isActive     Boolean      @default(true)
+  notes        String?
+  accountId    String?                          // optional: bank account that receives this income
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  entries      IncomeEntry[]
+
+  @@index([tenantId])
+  @@index([accountId])
+}
+
+model IncomeEntry {
+  id             String       @id @default(cuid())
+  incomeSourceId String
+  period         String                           // "2026-06" YYYY-MM
+  subPeriod      Int          @default(1)         // 1 = full month or 1ra quincena, 2 = 2da quincena
+  expectedAmount Decimal      @db.Decimal(15, 2)
+  actualAmount   Decimal?     @db.Decimal(15, 2)  // what actually landed
+  receivedAt     DateTime?
+  status         EntryStatus  @default(expected)
+  accountId      String?                          // which bank account received it
+  transactionId  String?                          // optional link to real transaction
+  note           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  source         IncomeSource @relation(fields: [incomeSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([incomeSourceId, period, subPeriod])
+  @@index([incomeSourceId])
+}
+
+// =============================================================================
+// LOAN + PAYMENTS
+// Tracks credits/loans with full amortization schedule and monthly pay status
+// =============================================================================
+
+model Loan {
+  id              String        @id @default(cuid())
+  tenantId        String
+  name            String                            // "Invex Volaris", "Promerica Personal GT"
+  type            LoanType      @default(personal)
+  lender          String                            // "Invex", "Promerica"
+  currency        Currency      @default(MXN)
+  originalAmount  Decimal       @db.Decimal(15, 2)  // principal at origination
+  currentBalance  Decimal       @db.Decimal(15, 2)  // remaining balance
+  interestRate    Decimal       @db.Decimal(7, 4)   // annual % e.g. 18.5000
+  monthlyPayment  Decimal       @db.Decimal(15, 2)
+  termMonths      Int                               // total term in months
+  startDate       DateTime
+  endDate         DateTime                          // calculated payoff date
+  linkedAccountId String?                           // which account payments come from
+  isActive        Boolean       @default(true)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdBy       String?
+  updatedBy       String?
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments        LoanPayment[]
+
+  @@index([tenantId])
+}
+
+model LoanPayment {
+  id              String        @id @default(cuid())
+  loanId          String
+  period          String                            // "2026-06" YYYY-MM
+  dueDate         DateTime
+  dueAmount       Decimal       @db.Decimal(15, 2)
+  principalAmount Decimal?      @db.Decimal(15, 2)  // portion to principal
+  interestAmount  Decimal?      @db.Decimal(15, 2)  // portion to interest
+  paidAmount      Decimal?      @db.Decimal(15, 2)  // actual paid
+  paidAt          DateTime?
+  status          PaymentStatus @default(scheduled)
+  transactionId   String?                           // optional link to real transaction
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  loan            Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, period])
+  @@index([loanId])
+}

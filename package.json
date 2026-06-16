@@ -1,0 +1,14 @@
+{
+  "name": "jportiz-wallet",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace @wallet/web dev",
+    "build": "yarn workspace @wallet/web build",
+    "lint": "yarn workspaces run lint"
+  },
+  "packageManager": "yarn@4.2.2"
+}
