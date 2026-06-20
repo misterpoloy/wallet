@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@wallet/db'
@@ -6,6 +5,16 @@ import { NewTransactionForm } from './NewTransactionForm'
 
 export const dynamic = 'force-dynamic'
 const TENANT = 'tenant_portiz'
+
+const serialize = (a: {
+  id: string; name: string; institution: string; color: string; colorEnd: string
+  currency: string; accountType: string; lastFour: string | null; logoUrl: string | null
+}) => ({
+  id: a.id, name: a.name, institution: a.institution,
+  color: a.color, colorEnd: a.colorEnd,
+  currency: a.currency as string, accountType: a.accountType as string,
+  lastFour: a.lastFour, logoUrl: a.logoUrl ?? null,
+})
 
 export default async function NewTransactionPage({
   searchParams,
@@ -19,47 +28,38 @@ export default async function NewTransactionPage({
   const initialType = ['expense', 'income', 'transfer'].includes(searchParams.type ?? '')
     ? (searchParams.type as 'expense' | 'income' | 'transfer')
     : 'expense'
-  if (!accountId) notFound()
 
-  const [originAccount, allAccounts] = await Promise.all([
-    prisma.account.findFirst({
-      where: { id: accountId, tenantId: TENANT, isActive: true },
-      select: { id: true, name: true, institution: true, color: true, colorEnd: true, currency: true, accountType: true, lastFour: true, logoUrl: true },
-    }),
-    prisma.account.findMany({
-      where: { tenantId: TENANT, isActive: true },
-      select: { id: true, name: true, institution: true, color: true, colorEnd: true, currency: true, accountType: true, lastFour: true, logoUrl: true },
-      orderBy: [{ accountType: 'asc' }, { name: 'asc' }],
-    }),
-  ])
-
-  if (!originAccount) notFound()
-
-  // Serialize (currency enum → string)
-  const serialize = (a: typeof originAccount) => ({
-    id:          a.id,
-    name:        a.name,
-    institution: a.institution,
-    color:       a.color,
-    colorEnd:    a.colorEnd,
-    currency:    a.currency as string,
-    accountType: a.accountType as string,
-    lastFour:    a.lastFour,
-    logoUrl:     a.logoUrl ?? null,
+  const allAccounts = await prisma.account.findMany({
+    where: { tenantId: TENANT, isActive: true },
+    select: { id: true, name: true, institution: true, color: true, colorEnd: true, currency: true, accountType: true, lastFour: true, logoUrl: true },
+    orderBy: [{ accountType: 'asc' }, { name: 'asc' }],
   })
 
-  const backHref = originAccount.accountType === 'credit_card'
-    ? `/credit-cards/${originAccount.id}`
-    : `/bank-accounts/${originAccount.id}`
+  // If accountId provided, find it; otherwise fall back to first account
+  const originAccount = accountId
+    ? allAccounts.find(a => a.id === accountId) ?? allAccounts[0]
+    : allAccounts[0]
+
+  if (!originAccount) {
+    return (
+      <div className="py-24 text-center text-white/40 text-sm">
+        No accounts found. Add an account first.
+      </div>
+    )
+  }
+
+  const backHref = accountId
+    ? (originAccount.accountType === 'credit_card'
+        ? `/credit-cards/${originAccount.id}`
+        : `/bank-accounts/${originAccount.id}`)
+    : '/transactions'
 
   return (
     <div className="space-y-7 max-w-2xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <Link href={backHref} className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </Link>
-        {/* Account context */}
         <div className="flex items-center gap-2 text-xs text-white/40 glass px-3 py-1.5 rounded-xl">
           <div
             className="w-3 h-3 rounded-full"
