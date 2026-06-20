@@ -8,6 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, Info, Wand2, Sparkles, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { MathBreakdown, type BreakdownSection } from '@/components/ui/MathBreakdown'
 import type { MonthRow } from './page'
 import { CreditPaymentOverview, type ExtraSource, type MonthProjection } from './CreditPaymentOverview'
 
@@ -503,41 +504,124 @@ export function OverviewClient({
   const extraPct     = simActive ? (extraTotalMXN / adjIncomeSafe) * 100 : 0
   const freePct      = Math.max(0, 100 - dtiPct - recurPct)
 
+  // ── Breakdown sections for MathBreakdown tooltips ─────────────────────────
+  const curRow = monthMap[meta.curPeriod]
+  const fxRates = meta.fxRates
+
+  function fmt(n: number) {
+    return `MXN ${Math.round(n).toLocaleString('en-US')}`
+  }
+  function fmtNative(n: number, cur: string) {
+    const sym: Record<string, string> = { MXN: '$', GTQ: 'Q', USD: '$', EUR: '€' }
+    return `${sym[cur] ?? ''}${Math.round(n).toLocaleString('en-US')} ${cur}`
+  }
+
+  const incomeBreakdown: BreakdownSection[] = [{
+    title: 'Income sources',
+    accent: 'text-emerald-400',
+    rows: (curRow?.income.items ?? []).map(i => ({
+      label:  i.name,
+      native: i.currency !== 'MXN' ? fmtNative(i.net, i.currency) : undefined,
+      fx:     i.currency !== 'MXN' ? `× ${fxRates[i.currency] ?? 1} MXN/${i.currency}` : undefined,
+      mxn:    fmt(i.netMXN),
+      sub:    i.status === 'received' ? 'received' : i.status === 'partial' ? 'partial' : 'expected',
+    })),
+    total:    fmt(adjIncome),
+    totalSub: simActive ? `incl. +${fmt(extraTotalMXN)} simulated` : undefined,
+  }]
+
+  const loanBreakdown: BreakdownSection[] = [{
+    title: 'Loan payments this month',
+    accent: 'text-rose-400',
+    rows: (curRow?.loans.items ?? []).map(l => ({
+      label:  l.name,
+      native: l.currency !== 'MXN' ? fmtNative(l.amountNative, l.currency) : undefined,
+      fx:     l.currency !== 'MXN' ? `× ${fxRates[l.currency] ?? 1} MXN/${l.currency}` : undefined,
+      mxn:    fmt(l.amountMXN),
+      sub:    l.status === 'paid' ? '✓ paid' : l.status === 'missed' ? '⚠ missed' : undefined,
+      dim:    l.status === 'paid',
+    })),
+    total:    fmt(kpi.monthlyLoans),
+    totalSub: `${dtiPct.toFixed(0)}% DTI`,
+  }]
+
+  const recurBreakdown: BreakdownSection[] = [{
+    title: 'Recurring expenses',
+    accent: 'text-yellow-400',
+    rows: (curRow?.recurring.items ?? []).map(r => ({
+      label:  r.name,
+      native: r.currency !== 'MXN' ? fmtNative(r.amountNative, r.currency) : undefined,
+      fx:     r.currency !== 'MXN' ? `× ${fxRates[r.currency] ?? 1} MXN/${r.currency}` : undefined,
+      mxn:    fmt(r.amountMXN),
+      sub:    r.frequency !== 'monthly' ? r.frequency.replace('_', ' ') + ' → monthly' : undefined,
+    })),
+    total:    fmt(kpi.monthlyRecurring),
+    totalSub: `${recurPct.toFixed(0)}% of income`,
+  }]
+
+  const cashFlowBreakdown: BreakdownSection[] = [
+    {
+      title: 'Calculation',
+      accent: adjCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400',
+      rows: [
+        { label: 'Net income',          mxn: fmt(adjIncome),            sub: simActive ? 'incl. simulation' : undefined },
+        { label: '− Loan payments',     mxn: `−${fmt(kpi.monthlyLoans)}` },
+        { label: '− Recurring expenses',mxn: `−${fmt(kpi.monthlyRecurring)}` },
+      ],
+      total:    `${adjCashFlow >= 0 ? '+' : '−'}${fmt(Math.abs(adjCashFlow))}`,
+      totalSub: adjCashFlow >= 0 ? 'surplus' : 'deficit',
+    },
+  ]
+
   return (
     <div className="space-y-6">
 
       {/* ── KPI row ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={TrendingUp}
-          label="Monthly Income (net)"
-          value={fmtMXN(adjIncome, true)}
-          sub={`MXN ${adjIncome.toLocaleString('en-US', { maximumFractionDigits: 0 })} take-home`}
-          color="text-emerald-400"
-          simDelta={simActive ? `+${fmtMXN(extraTotalMXN)} simulated` : undefined}
-        />
-        <KpiCard
-          icon={Landmark}
-          label="Monthly Loan Payments"
-          value={fmtMXN(kpi.monthlyLoans, true)}
-          sub={`${dtiPct.toFixed(0)}% of income (DTI)`}
-          color="text-rose-400"
-        />
-        <KpiCard
-          icon={Repeat2}
-          label="Monthly Recurring"
-          value={fmtMXN(kpi.monthlyRecurring, true)}
-          sub={`${recurPct.toFixed(0)}% of income`}
-          color="text-yellow-400"
-        />
-        <KpiCard
-          icon={adjCashFlow >= 0 ? Wallet : TrendingDown}
-          label="Monthly Net Cash Flow"
-          value={`${adjCashFlow >= 0 ? '+' : '-'}${fmtMXN(Math.abs(adjCashFlow), true)}`}
-          sub={`After obligations · ${adjCashFlow >= 0 ? '✓ positive' : '⚠ negative'}`}
-          color={adjCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}
-          simDelta={simActive ? `+${fmtMXN(extraTotalMXN)} from simulator` : undefined}
-        />
+        <MathBreakdown sections={incomeBreakdown}>
+          <KpiCard
+            icon={TrendingUp}
+            label="Monthly Income (net)"
+            value={fmtMXN(adjIncome, true)}
+            sub={`MXN ${adjIncome.toLocaleString('en-US', { maximumFractionDigits: 0 })} take-home`}
+            color="text-emerald-400"
+            simDelta={simActive ? `+${fmtMXN(extraTotalMXN)} simulated` : undefined}
+          />
+        </MathBreakdown>
+
+        <MathBreakdown sections={loanBreakdown}>
+          <KpiCard
+            icon={Landmark}
+            label="Monthly Loan Payments"
+            value={fmtMXN(kpi.monthlyLoans, true)}
+            sub={`${dtiPct.toFixed(0)}% of income (DTI)`}
+            color="text-rose-400"
+          />
+        </MathBreakdown>
+
+        <MathBreakdown sections={recurBreakdown}>
+          <KpiCard
+            icon={Repeat2}
+            label="Monthly Recurring"
+            value={fmtMXN(kpi.monthlyRecurring, true)}
+            sub={`${recurPct.toFixed(0)}% of income`}
+            color="text-yellow-400"
+          />
+        </MathBreakdown>
+
+        <MathBreakdown
+          sections={cashFlowBreakdown}
+          formula="Income − Loans − Recurring = Net Cash Flow"
+        >
+          <KpiCard
+            icon={adjCashFlow >= 0 ? Wallet : TrendingDown}
+            label="Monthly Net Cash Flow"
+            value={`${adjCashFlow >= 0 ? '+' : '-'}${fmtMXN(Math.abs(adjCashFlow), true)}`}
+            sub={`After obligations · ${adjCashFlow >= 0 ? '✓ positive' : '⚠ negative'}`}
+            color={adjCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}
+            simDelta={simActive ? `+${fmtMXN(extraTotalMXN)} from simulator` : undefined}
+          />
+        </MathBreakdown>
       </div>
 
       {/* ── Simulator banner ─────────────────────────────────────────────────── */}
