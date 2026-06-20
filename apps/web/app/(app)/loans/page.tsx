@@ -14,11 +14,12 @@ export default async function LoansPage() {
 
   const serialized = loans.map((l) => ({
     ...l,
-    originalAmount: Number(l.originalAmount),
-    currentBalance: Number(l.currentBalance),
-    interestRate:   Number(l.interestRate),
-    monthlyPayment: Number(l.monthlyPayment),
-    startDate:      l.startDate.toISOString(),
+    originalAmount:  Number(l.originalAmount),
+    currentBalance:  Number(l.currentBalance),
+    interestRate:    Number(l.interestRate),
+    monthlyPayment:  Number(l.monthlyPayment),
+    linkedAccountId: l.linkedAccountId ?? null,
+    startDate:       l.startDate.toISOString(),
     endDate:        l.endDate.toISOString(),
     createdAt:      l.createdAt.toISOString(),
     updatedAt:      l.updatedAt.toISOString(),

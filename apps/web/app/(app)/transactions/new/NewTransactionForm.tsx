@@ -44,6 +44,11 @@ interface Props {
   originAccount: Account
   allAccounts: Account[]
   initialType?: TxType
+  initialAmount?: string
+  initialCategory?: string
+  initialPayee?: string
+  initialNote?: string
+  initialDate?: string
 }
 
 const INPUT = 'w-full bg-white/[0.06] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-white/20 focus:bg-white/[0.09] transition-all'
@@ -186,20 +191,27 @@ function Label({ children }: { children: React.ReactNode }) {
 
 // ─── Main Form ────────────────────────────────────────────────────────────────
 
-export function NewTransactionForm({ originAccount, allAccounts, initialType = 'expense' }: Props) {
+export function NewTransactionForm({
+  originAccount, allAccounts, initialType = 'expense',
+  initialAmount = '', initialCategory, initialPayee = '', initialNote = '', initialDate,
+}: Props) {
   const router = useRouter()
   const tz = useTimezone()
 
   const [txType,       setTxType]       = useState<TxType>(initialType)
-  const [amount,       setAmount]       = useState('')
+  const [amount,       setAmount]       = useState(initialAmount)
   const [currency,     setCurrency]     = useState(originAccount.currency)
-  const [payee,        setPayee]        = useState('')
-  const [note,         setNote]         = useState('')
-  const [category,     setCategory]     = useState(initialType === 'transfer' ? 'Transfers' : 'Other')
+  const [payee,        setPayee]        = useState(initialPayee)
+  const [note,         setNote]         = useState(initialNote)
+  const [category,     setCategory]     = useState(
+    initialCategory ?? (initialType === 'transfer' ? 'Transfers' : 'Other')
+  )
   // datetime-local value: YYYY-MM-DDTHH:mm in user's timezone; re-init when tz resolves
-  const [datetime,     setDatetime]     = useState(() => localNow(tz))
-  // Once tz loads from API (may differ from default), reset to correct local time
-  useEffect(() => { setDatetime(localNow(tz)) }, [tz])
+  const [datetime,     setDatetime]     = useState(() =>
+    initialDate ? `${initialDate}T12:00` : localNow(tz)
+  )
+  // Once tz loads from API (may differ from default), reset to correct local time — but not if pre-filled
+  useEffect(() => { if (!initialDate) setDatetime(localNow(tz)) }, [tz])
   const [paymentType,  setPaymentType]  = useState(
     originAccount.accountType === 'credit_card' ? 'credit_card' : 'debit'
   )

@@ -10,7 +10,10 @@ const TENANT = 'tenant_portiz'
 export default async function NewTransactionPage({
   searchParams,
 }: {
-  searchParams: { accountId?: string; type?: string }
+  searchParams: {
+    accountId?: string; type?: string
+    amount?: string; category?: string; payee?: string; note?: string; date?: string
+  }
 }) {
   const accountId = searchParams.accountId
   const initialType = ['expense', 'income', 'transfer'].includes(searchParams.type ?? '')
@@ -75,6 +78,11 @@ export default async function NewTransactionPage({
         originAccount={serialize(originAccount)}
         allAccounts={allAccounts.map(serialize)}
         initialType={initialType}
+        initialAmount={searchParams.amount}
+        initialCategory={searchParams.category}
+        initialPayee={searchParams.payee}
+        initialNote={searchParams.note}
+        initialDate={searchParams.date}
       />
     </div>
   )
