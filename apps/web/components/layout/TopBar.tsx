@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Wallet, CheckSquare, ChevronDown, Search, Bell, ExternalLink } from 'lucide-react'
+import { CheckSquare, ChevronDown, Search, Bell, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { currentUser } from '@/lib/mock-data'
 
@@ -32,10 +33,10 @@ const APPS = [
     description: 'Family finances',
     href:        '/',
     external:    false,
-    icon:        Wallet,
-    color:       '#107C41',   // Excel-like green — money
-    colorEnd:    '#0A5C2E',
-    accentText:  '#6EE7A8',
+    icon:        null,
+    color:       '#1a1a0e',
+    colorEnd:    '#2a2800',
+    accentText:  '#d4af37',
   },
   {
     id:          'pixie',
@@ -110,10 +111,14 @@ function AppLauncher({ activeAppId, onClose }: { activeAppId: string; onClose: (
 
               {/* App icon tile — Microsoft Office style square */}
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden"
                 style={{ background: `linear-gradient(145deg, ${app.color}, ${app.colorEnd})` }}
               >
-                <Icon className="w-6 h-6 text-white" />
+                {app.id === 'wallet' ? (
+                  <Image src="/icon.png" alt="Wallet" width={48} height={48} className="w-12 h-12 object-cover" />
+                ) : Icon ? (
+                  <Icon className="w-6 h-6 text-white" />
+                ) : null}
               </div>
 
               {/* Name + description */}
@@ -192,11 +197,8 @@ export function TopBar() {
 
         {/* Current app icon + name */}
         <div className="flex items-center gap-2 px-3 h-full select-none">
-          <div
-            className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-            style={{ background: `linear-gradient(145deg, ${activeApp.color}, ${activeApp.colorEnd})` }}
-          >
-            <activeApp.icon className="w-3 h-3 text-white" />
+          <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0">
+            <Image src="/icon.png" alt="Wallet" width={20} height={20} className="w-5 h-5 object-cover" />
           </div>
           <span className="text-[13px] font-semibold text-white/90 tracking-tight">
             {activeApp.name}
