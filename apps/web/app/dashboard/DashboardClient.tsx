@@ -186,8 +186,8 @@ export function DashboardClient() {
         </div>
         <div className="flex items-center gap-3 flex-wrap justify-end">
           <PeriodSelector state={period} onChange={setPeriod} />
-          <div className="glass flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-white/40 w-40 cursor-pointer hover:bg-white/[0.09] transition-colors">
-            <span className="text-xs">⌘K Search…</span>
+          <div className="border border-white/[0.06] bg-[#0a0d14]/60 backdrop-blur-xl flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/25 w-40 cursor-pointer hover:border-white/[0.10] transition-colors">
+            <span className="text-[11px]">⌘K Search…</span>
           </div>
         </div>
       </div>
@@ -244,7 +244,7 @@ export function DashboardClient() {
               <div className="flex gap-3 text-[10px] text-white/40 flex-shrink-0">
                 {primaryLabel && (
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />{primaryLabel}
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />{primaryLabel}
                   </span>
                 )}
                 {compareLabel && (
@@ -286,7 +286,7 @@ export function DashboardClient() {
           <GlassCard>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-white">Recent Transactions</h2>
-              <a href="/transactions" className="text-xs text-violet-400 hover:text-violet-300">
+              <a href="/transactions" className="text-[11px] text-amber-400/70 hover:text-amber-300 transition-colors">
                 View all →
               </a>
             </div>

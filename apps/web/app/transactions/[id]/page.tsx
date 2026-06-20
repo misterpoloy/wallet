@@ -137,7 +137,7 @@ export default async function TransactionDetailPage({ params }: { params: { id: 
   const icon = CATEGORY_ICONS[tx.category] ?? CATEGORY_ICONS[tx.categoryRaw] ?? '💳'
   const amount = toNum(tx.amount as unknown as string)
   const currency = tx.currency as 'MXN' | 'GTQ' | 'USD'
-  const hasFx = tx.fxRate != null && tx.fxRate !== 1
+  const hasFx = tx.fxRate != null && Number(tx.fxRate) !== 1
 
   const date = new Date(tx.date)
   const formattedTime = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })

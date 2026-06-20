@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { LayoutGrid, Table2, Calendar, TrendingDown, ExternalLink } from 'lucide-react'
+import { LayoutGrid, Table2, Calendar, TrendingDown, ExternalLink, AlertTriangle, X, Landmark } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CurrencyBadge } from '@/components/ui/CurrencyBadge'
 import { formatMoney, cn } from '@/lib/utils'
@@ -319,7 +319,8 @@ interface Props {
 }
 
 export function RecurringClient({ expenses, summaryMXN, summaryGTQ, summaryUSD, totalCount }: Props) {
-  const [view, setView] = useState<'cards' | 'table'>('cards')
+  const [view, setView]           = useState<'cards' | 'table'>('cards')
+  const [noticeDismissed, setNoticeDismissed] = useState(false)
 
   const groupedByCategory = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
     ;(acc[e.category] ??= []).push(e)
@@ -360,6 +361,39 @@ export function RecurringClient({ expenses, summaryMXN, summaryGTQ, summaryUSD, 
           </div>
         </div>
       </div>
+
+      {/* Double-count notice */}
+      {!noticeDismissed && (
+        <div className="rounded-xl border border-yellow-400/20 bg-yellow-400/[0.05] px-4 py-3.5 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-yellow-400/80 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-yellow-300/90 mb-1">
+              Car loans &amp; credit payments belong in Loans
+            </p>
+            <p className="text-[12px] text-white/45 leading-relaxed">
+              Adding a car loan, mortgage, or any credit installment here will{' '}
+              <span className="text-white/70 font-medium">double-count it</span> across the
+              Overview, Dashboard, and budget summaries — those sections already pull from the
+              Loans module. Keep this page for true recurring expenses: subscriptions, utilities,
+              insurance, fuel, etc.
+            </p>
+            <Link
+              href="/loans"
+              className="inline-flex items-center gap-1.5 mt-2 text-[12px] font-semibold text-yellow-300 hover:text-yellow-200 transition-colors"
+            >
+              <Landmark className="w-3.5 h-3.5" />
+              Manage loans instead →
+            </Link>
+          </div>
+          <button
+            onClick={() => setNoticeDismissed(true)}
+            className="p-1 rounded-lg hover:bg-white/[0.06] text-white/20 hover:text-white/50 transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* View toggle */}
       <div className="flex items-center justify-end">

@@ -44,10 +44,10 @@ function typeLabel(t: string) {
 }
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (col !== sortKey) return <ArrowUpDown className="w-3.5 h-3.5 opacity-30" />
+  if (col !== sortKey) return <ArrowUpDown className="w-3.5 h-3.5 opacity-20" />
   return sortDir === 'asc'
-    ? <ArrowUp className="w-3.5 h-3.5 text-violet-400" />
-    : <ArrowDown className="w-3.5 h-3.5 text-violet-400" />
+    ? <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+    : <ArrowDown className="w-3.5 h-3.5 text-amber-400" />
 }
 
 // ─── Bulk Delete Modal ────────────────────────────────────────────────────────
@@ -244,21 +244,21 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
     <>
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-violet-500/10 border border-violet-500/20 mb-2">
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-amber-400/8 border border-amber-400/20 mb-2">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-violet-300">
+            <span className="text-sm font-semibold text-amber-300">
               {selected.size} account{selected.size > 1 ? 's' : ''} selected
             </span>
             <button
               onClick={() => setSelected(new Set())}
-              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="text-xs text-white/30 hover:text-white/60 transition-colors"
             >
               Clear
             </button>
           </div>
           <button
             onClick={() => { setError(''); setShowModal(true) }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition-all"
           >
             <Trash2 className="w-4 h-4" />
             Delete {selected.size > 1 ? `${selected.size} accounts` : 'account'}
@@ -272,30 +272,30 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
         </div>
       )}
 
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.07]">
+            <tr className="bg-white/[0.03] border-b border-white/[0.06]">
               {/* Select-all checkbox */}
-              <th className="pl-4 pr-2 py-3 w-10">
+              <th className="pl-4 pr-2 py-3.5 w-10">
                 <button
                   onClick={toggleAll}
                   className={cn(
-                    'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
+                    'w-4 h-4 rounded border flex items-center justify-center transition-all',
                     allSelected
-                      ? 'bg-violet-500 border-violet-500'
+                      ? 'bg-amber-400 border-amber-400'
                       : someSelected
-                      ? 'bg-violet-500/30 border-violet-500/50'
-                      : 'bg-white/5 border-white/20 hover:border-violet-500/50'
+                      ? 'bg-amber-400/30 border-amber-400/50'
+                      : 'bg-transparent border-white/20 hover:border-amber-400/50'
                   )}
                 >
                   {allSelected && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                   {!allSelected && someSelected && (
-                    <div className="w-2 h-0.5 bg-violet-300 rounded-full" />
+                    <div className="w-1.5 h-px bg-amber-300 rounded-full" />
                   )}
                 </button>
               </th>
@@ -305,7 +305,7 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                   key={key}
                   onClick={() => toggleSort(key)}
                   className={cn(
-                    'px-4 py-3 text-xs font-semibold text-white/40 uppercase tracking-wider cursor-pointer select-none hover:text-white/70 transition-colors',
+                    'px-4 py-3.5 text-[11px] font-semibold text-white/30 uppercase tracking-[0.08em] cursor-pointer select-none hover:text-white/60 transition-colors',
                     align === 'right' ? 'text-right' : 'text-left'
                   )}
                 >
@@ -316,11 +316,11 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                   </span>
                 </th>
               ))}
-              <th className="px-4 py-3 w-10" />
+              <th className="px-4 py-3.5 w-10" />
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-white/[0.05]">
+          <tbody className="divide-y divide-white/[0.04]">
             {sorted.map((account) => {
               const country = countryOf(account.currency)
               const isSelected = selected.has(account.id)
@@ -329,7 +329,7 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                   key={account.id}
                   className={cn(
                     'group transition-colors',
-                    isSelected ? 'bg-violet-500/[0.07]' : 'hover:bg-white/[0.03]'
+                    isSelected ? 'bg-amber-400/[0.05]' : 'hover:bg-white/[0.025]'
                   )}
                 >
                   {/* Row checkbox */}
@@ -337,14 +337,14 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                     <button
                       onClick={() => toggleOne(account.id)}
                       className={cn(
-                        'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
+                        'w-4 h-4 rounded border flex items-center justify-center transition-all',
                         isSelected
-                          ? 'bg-violet-500 border-violet-500'
-                          : 'bg-white/5 border-white/20 hover:border-violet-500/50'
+                          ? 'bg-amber-400 border-amber-400'
+                          : 'bg-transparent border-white/20 hover:border-amber-400/50'
                       )}
                     >
                       {isSelected && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -355,19 +355,19 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                   <td className="px-4 py-3.5">
                     <Link href={`/bank-accounts/${account.id}`} className="flex items-center gap-3">
                       <div
-                        className="w-9 h-9 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center text-base ring-1 ring-white/10"
+                        className="w-8 h-8 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center text-sm ring-1 ring-white/8"
                         style={{ background: `linear-gradient(135deg, ${account.color}, ${account.colorEnd})` }}
                       >
                         {account.logoUrl ? (
-                          <Image src={account.logoUrl} alt={account.institution} width={36} height={36} className="w-full h-full object-cover" unoptimized />
+                          <Image src={account.logoUrl} alt={account.institution} width={32} height={32} className="w-full h-full object-cover" unoptimized />
                         ) : (
                           account.accountType === 'cash' ? '💵' : '🏦'
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white group-hover:text-violet-300 transition-colors">{account.name}</p>
+                        <p className="text-sm font-medium text-white/90 group-hover:text-amber-300 transition-colors">{account.name}</p>
                         {account.lastFour && (
-                          <p className="text-xs text-white/30 font-mono">••••{account.lastFour}</p>
+                          <p className="text-[11px] text-white/25 font-mono tracking-wider">••••{account.lastFour}</p>
                         )}
                       </div>
                     </Link>
@@ -375,12 +375,12 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
 
                   {/* Institution */}
                   <td className="px-4 py-3.5">
-                    <span className="text-sm text-white/70">{account.institution}</span>
+                    <span className="text-sm text-white/50">{account.institution}</span>
                   </td>
 
                   {/* Type */}
                   <td className="px-4 py-3.5">
-                    <span className="text-xs text-white/50 bg-white/[0.06] px-2.5 py-1 rounded-lg">
+                    <span className="text-[11px] text-white/40 bg-white/[0.05] px-2 py-0.5 rounded font-medium">
                       {typeLabel(account.accountType)}
                     </span>
                   </td>
@@ -392,9 +392,9 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
 
                   {/* Country */}
                   <td className="px-4 py-3.5">
-                    <span className="inline-flex items-center gap-2 text-sm text-white/60">
+                    <span className="inline-flex items-center gap-2 text-sm text-white/40">
                       <span className="text-base leading-none">{country.flag}</span>
-                      {country.name}
+                      <span className="text-[13px]">{country.name}</span>
                     </span>
                   </td>
 
@@ -415,7 +415,7 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-all"
+                          className="p-1.5 rounded hover:bg-white/8 text-white/30 hover:text-amber-400 transition-all"
                           title="Open online banking"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -430,7 +430,7 @@ export function BankAccountsTable({ accounts }: { accounts: AccountRow[] }) {
         </table>
 
         {accounts.length === 0 && (
-          <div className="py-16 text-center text-white/30 text-sm">No bank accounts found</div>
+          <div className="py-16 text-center text-white/20 text-sm">No bank accounts found</div>
         )}
       </div>
 

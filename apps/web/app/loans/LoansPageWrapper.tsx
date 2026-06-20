@@ -68,7 +68,7 @@ function LoanSummary({ loans }: { loans: any[] }) {
     .join(' · ')
 
   return (
-    <div className="glass rounded-2xl p-5 border border-white/[0.06]">
+    <div className="rounded-xl bg-[#0a0d14]/80 backdrop-blur-xl border border-white/[0.06] p-5">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-white/80">Payment Summary</h3>
@@ -119,28 +119,28 @@ function LoanSummary({ loans }: { loans: any[] }) {
         ))}
 
         {/* USD total */}
-        <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 p-4">
+        <div className="rounded-xl bg-amber-400/[0.06] border border-amber-400/20 p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold text-violet-300/70 uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-amber-300/70 uppercase tracking-widest">
               Total · USD
             </span>
-            <DollarSign className="w-3.5 h-3.5 text-violet-400/60" />
+            <DollarSign className="w-3.5 h-3.5 text-amber-400/60" />
           </div>
           <div className="space-y-2">
             <div className="flex items-baseline justify-between">
               <span className="text-[10px] text-white/30">Monthly</span>
-              <span className="text-base font-bold text-violet-300 tabular-nums">
+              <span className="text-base font-bold text-amber-300 tabular-nums">
                 {fmtUSD(totalUSDMonthly)}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-[10px] text-white/30">Yearly</span>
-              <span className="text-sm font-semibold text-violet-300/60 tabular-nums">
+              <span className="text-sm font-semibold text-amber-300/60 tabular-nums">
                 {fmtUSD(totalUSDMonthly * 12)}
               </span>
             </div>
             {fxNote && (
-              <div className="pt-2 border-t border-violet-500/10">
+              <div className="pt-2 border-t border-amber-400/[0.08]">
                 <p className="text-[9px] text-white/20 leading-snug">
                   {fxNote} per USD
                 </p>
@@ -163,14 +163,14 @@ export function LoansPageWrapper({ loans }: Props) {
 
       {/* View toggle */}
       <div className="flex justify-end">
-        <div className="inline-flex items-center glass rounded-xl p-1 gap-0.5">
+        <div className="inline-flex items-center border border-white/[0.06] bg-[#0a0d14]/60 backdrop-blur-xl rounded-lg p-1 gap-0.5">
           <button
             onClick={() => setView('card')}
             className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all',
               view === 'card'
-                ? 'bg-violet-500/20 text-violet-300'
-                : 'text-white/40 hover:text-white/70'
+                ? 'bg-amber-400/15 text-amber-300 border border-amber-400/25'
+                : 'text-white/35 hover:text-white/70 hover:bg-white/[0.04]'
             )}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
@@ -179,10 +179,10 @@ export function LoansPageWrapper({ loans }: Props) {
           <button
             onClick={() => setView('table')}
             className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all',
               view === 'table'
-                ? 'bg-violet-500/20 text-violet-300'
-                : 'text-white/40 hover:text-white/70'
+                ? 'bg-amber-400/15 text-amber-300 border border-amber-400/25'
+                : 'text-white/35 hover:text-white/70 hover:bg-white/[0.04]'
             )}
           >
             <Table2 className="w-3.5 h-3.5" />

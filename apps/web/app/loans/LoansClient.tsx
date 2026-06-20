@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle2, Clock, XCircle, Circle, ChevronLeft, ChevronRight, Plus, Landmark, TrendingDown, ArrowRight } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Circle, ChevronLeft, ChevronRight, Plus, Landmark, TrendingDown, ArrowRight, CreditCard, Tag } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { formatMoney, cn } from '@/lib/utils'
+import { useGlobalLoader } from '@/components/ui/GlobalLoader'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -46,12 +47,104 @@ const STATUS_CONFIG = {
   skipped:   { icon: Circle,       color: 'text-white/20',    bg: 'bg-white/[0.02] border-white/5',          label: 'Skipped'   },
 }
 
-function PaymentCell({
-  loanId, year, monthIdx, payment, currency, onUpdate,
+// ── Payment confirmation modal ────────────────────────────────────────────────
+
+function PaymentConfirmModal({
+  loan,
+  period,
+  monthLabel,
+  onMarkOnly,
+  onClose,
 }: {
-  loanId: string; year: number; monthIdx: number; payment?: Payment; currency: string; onUpdate: () => void
+  loan: Loan
+  period: string
+  monthLabel: string
+  onMarkOnly: () => void
+  onClose: () => void
 }) {
-  const [loading, setLoading] = useState(false)
+  const amount = Number(loan.monthlyPayment)
+  const currency = loan.currency
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative w-full max-w-sm rounded-xl border border-white/[0.08] bg-[#0a0d14] p-6 space-y-5"
+        style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.7)' }}
+      >
+        {/* Header */}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Mark payment as paid</p>
+            <p className="text-xs text-white/40 mt-0.5">{loan.name} · {monthLabel}</p>
+          </div>
+        </div>
+
+        {/* Pre-fill info */}
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3 space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-white/40">Amount</span>
+            <span className="text-white font-semibold tabular-nums">{formatMoney({ amount, currency: currency as any })}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-white/40">From</span>
+            <span className="text-white/70">{loan.lender}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-white/40">Period</span>
+            <span className="text-white/70">{period}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-white/30 leading-relaxed">
+          Do you want to also create a transaction record, or just mark this payment as paid?
+        </p>
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <button
+            onClick={onMarkOnly}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors group"
+          >
+            <Tag className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm font-semibold text-emerald-300">Just mark as paid</p>
+              <p className="text-[11px] text-white/30">Update status only, no transaction created</p>
+            </div>
+          </button>
+
+          <button
+            disabled
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06] opacity-40 cursor-not-allowed"
+          >
+            <CreditCard className="w-4 h-4 text-white/40 flex-shrink-0" />
+            <div className="text-left">
+              <p className="text-sm font-semibold text-white/50">Create transaction</p>
+              <p className="text-[11px] text-white/25">Coming soon — will log to your account</p>
+            </div>
+          </button>
+        </div>
+
+        <button onClick={onClose} className="w-full text-xs text-white/25 hover:text-white/50 transition-colors pt-1">
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Payment cell ──────────────────────────────────────────────────────────────
+
+function PaymentCell({
+  loan, year, monthIdx, payment, onUpdate,
+}: {
+  loan: Loan; year: number; monthIdx: number; payment?: Payment; onUpdate: () => void
+}) {
+  const { show, hide } = useGlobalLoader()
+  const [confirming, setConfirming] = useState(false)
   const period = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
   const now = new Date()
   const isCurrent = year === now.getFullYear() && monthIdx === now.getMonth()
@@ -59,33 +152,52 @@ function PaymentCell({
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.scheduled
   const Icon = cfg.icon
 
-  async function toggle() {
-    if (loading) return
-    setLoading(true)
-    const nextStatus = status === 'paid' ? 'scheduled' : 'paid'
-    await fetch(`/api/loans/${loanId}/payments/${period}`, {
+  function handleClick() {
+    if (status === 'paid') {
+      // Unpaying doesn't need confirmation
+      markAs('scheduled')
+    } else {
+      setConfirming(true)
+    }
+  }
+
+  async function markAs(nextStatus: string) {
+    setConfirming(false)
+    show()
+    await fetch(`/api/loans/${loan.id}/payments/${period}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nextStatus }),
     })
     onUpdate()
-    setLoading(false)
+    hide()
   }
 
   return (
-    <button
-      onClick={toggle}
-      disabled={loading}
-      title={`${MONTHS[monthIdx]} ${year}: ${cfg.label} — click to toggle`}
-      className={cn(
-        'flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all hover:scale-105 active:scale-95',
-        cfg.bg,
-        isCurrent && 'ring-1 ring-violet-500/50'
+    <>
+      <button
+        onClick={handleClick}
+        title={`${MONTHS[monthIdx]} ${year}: ${cfg.label} — click to toggle`}
+        className={cn(
+          'flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all hover:scale-105 active:scale-95',
+          cfg.bg,
+          isCurrent && 'ring-1 ring-amber-400/40'
+        )}
+      >
+        <span className={cn('text-[10px] font-semibold uppercase', cfg.color)}>{MONTHS[monthIdx]}</span>
+        <Icon className={cn('w-4 h-4', cfg.color)} />
+      </button>
+
+      {confirming && (
+        <PaymentConfirmModal
+          loan={loan}
+          period={period}
+          monthLabel={`${MONTHS[monthIdx]} ${year}`}
+          onMarkOnly={() => markAs('paid')}
+          onClose={() => setConfirming(false)}
+        />
       )}
-    >
-      <span className={cn('text-[10px] font-semibold uppercase', cfg.color)}>{MONTHS[monthIdx]}</span>
-      <Icon className={cn('w-4 h-4', cfg.color, loading && 'animate-pulse')} />
-    </button>
+    </>
   )
 }
 
@@ -113,7 +225,7 @@ function LoanCard({ loan, year, onUpdate }: { loan: Loan; year: number; onUpdate
             <Landmark className="w-5 h-5 text-rose-400" />
           </div>
           <div>
-            <Link href={`/loans/${loan.id}`} className="text-sm font-semibold text-white hover:text-violet-300 transition-colors">
+            <Link href={`/loans/${loan.id}`} className="text-sm font-semibold text-white hover:text-amber-300 transition-colors">
               {loan.name}
             </Link>
             <p className="text-xs text-white/40 mt-0.5">{loan.lender} · {loan.type.replace('_', ' ')}</p>
@@ -175,18 +287,17 @@ function LoanCard({ loan, year, onUpdate }: { loan: Loan; year: number; onUpdate
         {Array.from({ length: 12 }, (_, i) => (
           <PaymentCell
             key={i}
-            loanId={loan.id}
+            loan={loan}
             year={year}
             monthIdx={i}
             payment={yearPayments[i]}
-            currency={loan.currency}
             onUpdate={onUpdate}
           />
         ))}
       </div>
 
       <div className="mt-4 pt-4 border-t border-white/[0.06]">
-        <Link href={`/loans/${loan.id}`} className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-violet-300 transition-colors">
+        <Link href={`/loans/${loan.id}`} className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-amber-300 transition-colors">
           View full details & amortization <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
@@ -241,7 +352,7 @@ function AddLoanModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md glass rounded-2xl p-6 space-y-4 bg-[#0f0f1a] my-8">
+      <div className="relative w-full max-w-md rounded-xl border border-white/[0.08] bg-[#0a0d14] backdrop-blur-2xl p-6 space-y-4 my-8">
         <h2 className="text-base font-semibold text-white">Add Loan / Credit</h2>
 
         <div className="grid grid-cols-2 gap-3">
@@ -259,7 +370,7 @@ function AddLoanModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
               <label className="text-xs text-white/40 uppercase tracking-wider block mb-1.5">{label}</label>
               <input type={type ?? 'text'} value={(form as any)[key]} onChange={(e) => set(key, e.target.value)}
                 placeholder={placeholder}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50" />
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-amber-400/40 transition-colors" />
             </div>
           ))}
         </div>
@@ -268,14 +379,14 @@ function AddLoanModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
           <div>
             <label className="text-xs text-white/40 uppercase tracking-wider block mb-1.5">Currency</label>
             <select value={form.currency} onChange={(e) => set('currency', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none">
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/40 transition-colors">
               {['MXN','GTQ','USD'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs text-white/40 uppercase tracking-wider block mb-1.5">Type</label>
             <select value={form.type} onChange={(e) => set('type', e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none">
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/40 transition-colors">
               <option value="personal">Personal</option>
               <option value="auto">Auto</option>
               <option value="mortgage">Mortgage</option>
@@ -293,7 +404,7 @@ function AddLoanModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
 
         <div className="flex gap-3 pt-2">
           <button onClick={save} disabled={saving || !valid}
-            className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all disabled:opacity-40">
+            className="flex-1 py-2.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-sm font-semibold transition-all disabled:opacity-40">
             {saving ? 'Saving…' : 'Add Loan'}
           </button>
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm text-white/50 hover:text-white/80">Cancel</button>
@@ -316,17 +427,17 @@ export function LoansClient({ initialLoans }: { initialLoans: Loan[] }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => setYear(y => y - 1)} className="p-2 rounded-xl glass hover:bg-white/10 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-white/60" />
+          <button onClick={() => setYear(y => y - 1)} className="p-2 rounded-lg border border-white/[0.06] bg-[#0a0d14]/60 hover:border-white/[0.12] transition-colors">
+            <ChevronLeft className="w-4 h-4 text-white/50" />
           </button>
           <span className="text-lg font-bold text-white w-16 text-center">{year}</span>
           <button onClick={() => setYear(y => y + 1)} disabled={year >= new Date().getFullYear() + 5}
-            className="p-2 rounded-xl glass hover:bg-white/10 transition-colors disabled:opacity-30">
+            className="p-2 rounded-lg border border-white/[0.06] bg-[#0a0d14]/60 hover:border-white/[0.12] transition-colors disabled:opacity-30">
             <ChevronRight className="w-4 h-4 text-white/60" />
           </button>
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all">
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-black text-sm font-semibold transition-all">
           <Plus className="w-4 h-4" /> Add Loan
         </button>
       </div>

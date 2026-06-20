@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #030312;
+  --bg-primary: #070a0f;
   --glass-bg: rgba(255, 255, 255, 0.06);
   --glass-bg-md: rgba(255, 255, 255, 0.09);
   --glass-border: rgba(255, 255, 255, 0.10);

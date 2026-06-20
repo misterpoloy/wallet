@@ -17,8 +17,8 @@ const CreateTransactionSchema = z.object({
   fxRate: z.number().positive().optional(),
   type: z.nativeEnum(TransactionType),
   paymentType: z.nativeEnum(PaymentType).default('debit'),
-  note: z.string().optional(),
-  payee: z.string().optional(),
+  note: z.string().nullish(),
+  payee: z.string().nullish(),
   labels: z.array(z.string()).default([]),
   date: z.string().datetime(),
   isTransfer: z.boolean().default(false),
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
           ...(data.transferGroupId && { transferGroupId: data.transferGroupId }),
           ...(data.transferToId   && { transferTo: { connect: { id: data.transferToId } } }),
           isRecurring: data.isRecurring,
-          ...(data.recurringId    && { recurringId: data.recurringId }),
+          ...(data.recurringId    && { recurring: { connect: { id: data.recurringId } } }),
         },
         include: {
           account: {

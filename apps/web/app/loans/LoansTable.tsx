@@ -29,8 +29,8 @@ type SortDir = 'asc' | 'desc'
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (col !== sortKey) return <ArrowUpDown className="w-3.5 h-3.5 opacity-30" />
   return sortDir === 'asc'
-    ? <ArrowUp className="w-3.5 h-3.5 text-violet-400" />
-    : <ArrowDown className="w-3.5 h-3.5 text-violet-400" />
+    ? <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+    : <ArrowDown className="w-3.5 h-3.5 text-amber-400" />
 }
 
 export function LoansTable({ loans }: { loans: Loan[] }) {
@@ -81,17 +81,17 @@ case 'originalAmount': av = a.originalAmount;        bv = b.originalAmount;     
   ]
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
+    <div className="rounded-xl border border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl overflow-hidden">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-white/[0.07]">
+          <tr className="bg-white/[0.03] border-b border-white/[0.06]">
             {headers.map(({ key, label, tooltip, align }) => (
               <th
                 key={key}
                 onClick={() => toggleSort(key)}
                 title={tooltip}
                 className={cn(
-                  'px-4 py-3 text-xs font-semibold text-white/40 uppercase tracking-wider cursor-pointer select-none hover:text-white/70 transition-colors group/th relative',
+                  'px-4 py-3.5 text-[11px] font-semibold text-white/30 uppercase tracking-[0.08em] cursor-pointer select-none hover:text-white/60 transition-colors group/th relative',
                   align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
                 )}
               >
@@ -100,7 +100,7 @@ case 'originalAmount': av = a.originalAmount;        bv = b.originalAmount;     
                 </span>
                 {/* Tooltip */}
                 <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 hidden group-hover/th:block pointer-events-none">
-                  <div className="bg-[#1a1a2e] border border-white/10 text-white/70 text-[11px] leading-relaxed rounded-xl px-3 py-2 w-56 shadow-xl">
+                  <div className="bg-[#0d1017] border border-white/[0.08] text-white/60 text-[11px] leading-relaxed rounded-lg px-3 py-2 w-56 shadow-xl">
                     {tooltip}
                   </div>
                 </div>
@@ -108,7 +108,7 @@ case 'originalAmount': av = a.originalAmount;        bv = b.originalAmount;     
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/[0.05]">
+        <tbody className="divide-y divide-white/[0.04]">
           {sorted.map(loan => (
             <tr key={loan.id} className="group hover:bg-white/[0.03] transition-colors cursor-pointer">
               <td className="px-4 py-3.5">
@@ -116,7 +116,7 @@ case 'originalAmount': av = a.originalAmount;        bv = b.originalAmount;     
                   <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center flex-shrink-0">
                     <Landmark className="w-3.5 h-3.5 text-rose-400" />
                   </div>
-                  <span className="text-sm font-medium text-white group-hover:text-violet-300 transition-colors">
+                  <span className="text-sm font-medium text-white/90 group-hover:text-amber-300 transition-colors">
                     {loan.name}
                   </span>
                 </Link>

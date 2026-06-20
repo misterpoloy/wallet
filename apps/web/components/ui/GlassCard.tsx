@@ -28,9 +28,9 @@ export function GlassCard({
     <div
       onClick={onClick}
       className={cn(
-        'glass rounded-2xl',
+        'rounded-xl border border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl',
         paddingMap[padding],
-        hover && 'glass-hover cursor-pointer',
+        hover && 'hover:border-white/[0.10] cursor-pointer transition-colors',
         onClick && 'cursor-pointer',
         className
       )}
