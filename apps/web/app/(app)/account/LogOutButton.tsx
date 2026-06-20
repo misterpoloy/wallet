@@ -11,10 +11,10 @@ interface LogOutButtonProps {
 export function LogOutButton({ variant = 'icon' }: LogOutButtonProps) {
   const router = useRouter()
 
-  function handleLogout() {
-    // Stage 4: replace with Clerk's signOut() — e.g. signOut({ callbackUrl: '/login' })
-    // For now, clear any stored state and redirect to dashboard root
-    router.push('/')
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+    router.refresh()
   }
 
   if (variant === 'full') {

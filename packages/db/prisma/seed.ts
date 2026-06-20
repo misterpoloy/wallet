@@ -3,8 +3,15 @@
  * Safe to re-run (upsert). Does NOT insert transactions (that's the CSV importer).
  */
 import { PrismaClient, TenantPlan, MemberRole } from '@prisma/client'
+import crypto from 'node:crypto'
 
 const prisma = new PrismaClient()
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(password, salt, 100_000, 32, 'sha256').toString('hex')
+  return `${salt}:${hash}`
+}
 
 async function main() {
   console.log('🌱  Seeding base tenant + user...')
@@ -22,11 +29,12 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: 'jp@calaps.com' },
-    update: {},
+    update: { passwordHash: hashPassword('Calaps2115') },
     create: {
       id: 'user_juan',
       email: 'jp@calaps.com',
       name: 'Juan Portiz',
+      passwordHash: hashPassword('Calaps2115'),
       avatarColor: 'linear-gradient(135deg, #7c3aed, #06b6d4)',
     },
   })

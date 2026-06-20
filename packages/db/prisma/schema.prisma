@@ -147,13 +147,14 @@ model Tenant {
 // =============================================================================
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  avatarColor String   @default("#7c3aed")
-  timezone    String   @default("America/Mexico_City")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  avatarColor  String   @default("#7c3aed")
+  timezone     String   @default("America/Mexico_City")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   memberships TenantMember[]
 }
