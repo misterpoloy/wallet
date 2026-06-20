@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CheckSquare, ChevronDown, Search, Bell, ExternalLink } from 'lucide-react'
@@ -115,7 +114,7 @@ function AppLauncher({ activeAppId, onClose }: { activeAppId: string; onClose: (
                 style={{ background: `linear-gradient(145deg, ${app.color}, ${app.colorEnd})` }}
               >
                 {app.id === 'wallet' ? (
-                  <Image src="/icon.png" alt="Wallet" width={48} height={48} className="w-12 h-12 object-cover" />
+                  <img src="/icon.png" alt="Wallet" className="w-full h-full object-cover" />
                 ) : Icon ? (
                   <Icon className="w-6 h-6 text-white" />
                 ) : null}
@@ -198,7 +197,7 @@ export function TopBar() {
         {/* Current app icon + name */}
         <div className="flex items-center gap-2 px-3 h-full select-none">
           <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0">
-            <Image src="/icon.png" alt="Wallet" width={20} height={20} className="w-5 h-5 object-cover" />
+            <img src="/icon.png" alt="Wallet" className="w-full h-full object-cover" />
           </div>
           <span className="text-[13px] font-semibold text-white/90 tracking-tight">
             {activeApp.name}

@@ -7,6 +7,10 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 export const metadata: Metadata = {
   title: 'Wallet — Family Financial Dashboard',
   description: 'Multi-tenant family wallet: credit cards, bank accounts & recurring expenses',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
