@@ -329,8 +329,8 @@ export function NewTransactionForm({
 
       {/* ── AMOUNT HERO ─────────────────────────────────────────────── */}
       <div className="relative rounded-3xl overflow-hidden border border-white/[0.07] bg-white/[0.04] backdrop-blur-xl">
-        {/* glow */}
-        <div className={cn('absolute inset-0 opacity-[0.07] blur-3xl rounded-full w-80 h-80 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 pointer-events-none', glowColor)} />
+        {/* subtle bottom-edge glow only */}
+        <div className={cn('absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-48 h-24 opacity-[0.12] blur-2xl rounded-full pointer-events-none', glowColor)} />
 
         <div className="relative z-10 px-8 pt-7 pb-6 text-center space-y-6">
           {/* Type selector */}
@@ -354,16 +354,18 @@ export function NewTransactionForm({
           {/* Amount */}
           <div className="flex items-center justify-center gap-3">
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '' || /^\d*\.?\d*$/.test(v)) setAmount(v)
+              }}
               placeholder="0.00"
-              step="0.01"
-              min="0"
               autoFocus
               className={cn(
                 'bg-transparent text-6xl font-thin tracking-tight text-center focus:outline-none',
-                'min-w-0 w-52',
+                'min-w-0 flex-1 max-w-xs',
                 amount ? amountColor : 'text-white/20'
               )}
             />
