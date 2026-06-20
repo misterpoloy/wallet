@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, Clock, XCircle, Circle, ChevronLeft, ChevronRight, Plus, Landmark, TrendingDown, ArrowRight, CreditCard, Tag, ArrowUpRight } from 'lucide-react'
@@ -81,7 +82,7 @@ function PaymentConfirmModal({
     router.push(`/transactions/new?${params.toString()}`)
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
       {/* Full-page backdrop — covers sidebar + main */}
       <div
@@ -174,7 +175,8 @@ function PaymentConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
