@@ -110,13 +110,15 @@ function AppLauncher({ activeAppId, onClose }: { activeAppId: string; onClose: (
 
               {/* App icon tile — Microsoft Office style square */}
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden"
+                className="w-12 h-12 rounded-xl shadow-lg overflow-hidden relative"
                 style={{ background: `linear-gradient(145deg, ${app.color}, ${app.colorEnd})` }}
               >
                 {app.id === 'wallet' ? (
-                  <img src="/icon.png" alt="Wallet" className="w-full h-full object-cover" />
+                  <img src="/icon.png" alt="Wallet" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 ) : Icon ? (
-                  <Icon className="w-6 h-6 text-white" />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
                 ) : null}
               </div>
 
@@ -197,7 +199,7 @@ export function TopBar() {
         {/* Current app icon + name */}
         <div className="flex items-center gap-2 px-3 h-full select-none">
           <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0">
-            <img src="/icon.png" alt="Wallet" className="w-full h-full object-cover" />
+            <img src="/icon.png" alt="Wallet" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           <span className="text-[13px] font-semibold text-white/90 tracking-tight">
             {activeApp.name}
