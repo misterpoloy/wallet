@@ -82,81 +82,97 @@ function PaymentConfirmModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
+      {/* Full-page backdrop — covers sidebar + main */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(4,6,10,0.82)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+        onClick={onClose}
+      />
 
       {/* Card */}
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-white/[0.10] bg-[#070a0f]/95 backdrop-blur-2xl p-8 space-y-6"
-        style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06)' }}
+        className="relative w-full max-w-lg rounded-2xl border border-white/[0.10] bg-[#0b0e17] overflow-hidden"
+        style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 40px 100px rgba(0,0,0,0.9)' }}
+        onClick={e => e.stopPropagation()}
       >
+        {/* Amber top glow */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+
         {/* Header */}
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-6 h-6 text-amber-400" />
+        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Mark payment as paid</p>
+              <p className="text-xs text-white/35 mt-0.5">{loan.name} · {monthLabel}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-base font-semibold text-white">Mark payment as paid</p>
-            <p className="text-sm text-white/40 mt-0.5">{loan.name} · {monthLabel}</p>
-          </div>
-          <button onClick={onClose} className="ml-auto text-white/20 hover:text-white/60 transition-colors text-lg leading-none">✕</button>
-        </div>
-
-        {/* Summary row */}
-        <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] divide-y divide-white/[0.06]">
-          {[
-            { label: 'Amount', value: formatMoney({ amount, currency: currency as any }), bold: true },
-            { label: 'Lender', value: loan.lender },
-            { label: 'Period', value: period },
-          ].map(({ label, value, bold }) => (
-            <div key={label} className="flex justify-between items-center px-4 py-3">
-              <span className="text-sm text-white/40">{label}</span>
-              <span className={`text-sm tabular-nums ${bold ? 'font-semibold text-white' : 'text-white/70'}`}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-sm text-white/30 leading-relaxed">
-          Do you want to also log a transaction record, or just mark this payment as paid?
-        </p>
-
-        {/* Action buttons */}
-        <div className="space-y-3">
-          {/* Mark only */}
           <button
-            onClick={onMarkOnly}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/35 transition-all group"
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/[0.06] text-white/25 hover:text-white/60 transition-colors"
           >
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-              <Tag className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-semibold text-emerald-300">Just mark as paid</p>
-              <p className="text-xs text-white/30 mt-0.5">Update status only — no transaction created</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-emerald-500/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
-          </button>
-
-          {/* Create transaction */}
-          <button
-            onClick={handleCreateTransaction}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-white/[0.04] border border-white/[0.09] hover:bg-white/[0.07] hover:border-white/[0.14] transition-all group"
-          >
-            <div className="w-9 h-9 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-              <CreditCard className="w-4 h-4 text-white/60" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-sm font-semibold text-white/80">Create transaction</p>
-              <p className="text-xs text-white/30 mt-0.5">Log this payment to your account + mark as paid</p>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-all" />
+            <ArrowRight className="w-4 h-4 rotate-[-90deg]" />
           </button>
         </div>
 
-        <button onClick={onClose} className="w-full text-xs text-white/20 hover:text-white/50 transition-colors pt-1">
-          Cancel
-        </button>
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5">
+          {/* Summary rows */}
+          <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] divide-y divide-white/[0.06]">
+            {[
+              { label: 'Amount', value: formatMoney({ amount, currency: currency as any }), bold: true },
+              { label: 'Lender', value: loan.lender },
+              { label: 'Period', value: period },
+            ].map(({ label, value, bold }) => (
+              <div key={label} className="flex justify-between items-center px-4 py-3">
+                <span className="text-sm text-white/40">{label}</span>
+                <span className={`text-sm tabular-nums ${bold ? 'font-semibold text-white' : 'text-white/60'}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-white/30 leading-relaxed">
+            Do you want to also log a transaction record, or just mark this payment as paid?
+          </p>
+
+          {/* Action buttons */}
+          <div className="space-y-2.5">
+            <button
+              onClick={onMarkOnly}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/35 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <Tag className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold text-emerald-300">Just mark as paid</p>
+                <p className="text-xs text-white/30 mt-0.5">Update status only — no transaction created</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-emerald-500/40 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+            </button>
+
+            <button
+              onClick={handleCreateTransaction}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-white/[0.04] border border-white/[0.09] hover:bg-white/[0.07] hover:border-white/[0.14] transition-all group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                <CreditCard className="w-4 h-4 text-white/60" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-semibold text-white/80">Create transaction</p>
+                <p className="text-xs text-white/30 mt-0.5">Log this payment to your account + mark as paid</p>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-white/50 transition-all" />
+            </button>
+          </div>
+
+          <button onClick={onClose} className="w-full text-xs text-white/20 hover:text-white/50 transition-colors py-1">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   )
