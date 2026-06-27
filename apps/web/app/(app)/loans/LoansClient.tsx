@@ -196,9 +196,14 @@ function PaymentCell({
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.scheduled
   const Icon = cfg.icon
 
+  // Disable months before the loan's start date
+  const startDate = new Date(loan.startDate)
+  const cellDate  = new Date(year, monthIdx, 1)
+  const isBeforeStart = cellDate < new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+
   function handleClick() {
+    if (isBeforeStart) return
     if (status === 'paid') {
-      // Unpaying doesn't need confirmation
       markAs('scheduled')
     } else {
       setConfirming(true)
@@ -221,15 +226,24 @@ function PaymentCell({
     <>
       <button
         onClick={handleClick}
-        title={`${MONTHS[monthIdx]} ${year}: ${cfg.label} — click to toggle`}
+        disabled={isBeforeStart}
+        title={
+          isBeforeStart
+            ? `${MONTHS[monthIdx]} ${year}: before loan start date`
+            : `${MONTHS[monthIdx]} ${year}: ${cfg.label} — click to toggle`
+        }
         className={cn(
-          'flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all hover:scale-105 active:scale-95',
-          cfg.bg,
-          isCurrent && 'ring-1 ring-amber-400/40'
+          'flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all',
+          isBeforeStart
+            ? 'opacity-20 cursor-not-allowed border-white/[0.03] bg-transparent'
+            : cn('hover:scale-105 active:scale-95', cfg.bg),
+          !isBeforeStart && isCurrent && 'ring-1 ring-amber-400/40'
         )}
       >
-        <span className={cn('text-[10px] font-semibold uppercase', cfg.color)}>{MONTHS[monthIdx]}</span>
-        <Icon className={cn('w-4 h-4', cfg.color)} />
+        <span className={cn('text-[10px] font-semibold uppercase', isBeforeStart ? 'text-white/20' : cfg.color)}>
+          {MONTHS[monthIdx]}
+        </span>
+        <Icon className={cn('w-4 h-4', isBeforeStart ? 'text-white/20' : cfg.color)} />
       </button>
 
       {confirming && (
