@@ -171,13 +171,12 @@ export default async function TransactionDetailPage({ params }: { params: { id: 
           {!isTransfer && !isIncome && (
             <CreateRecurringButton
               transaction={{
-                id:        tx.id,
                 accountId: tx.accountId,
                 payee:     tx.payee,
                 note:      tx.note,
                 category:  tx.category,
                 currency:  currency,
-                amount:    amount,
+                amount:    String(tx.amount),
                 date:      tx.date.toISOString(),
               }}
             />
