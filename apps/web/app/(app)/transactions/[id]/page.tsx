@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Calendar, Tag, CreditCard, Building2, CheckCircle2, Clock, History, UserRound, Bot, Pencil, ArrowRightLeft, TrendingDown, TrendingUp, Store, FileText } from 'lucide-react'
 import { DeleteTransactionButton } from './DeleteTransactionButton'
+import { CreateRecurringButton } from './CreateRecurringButton'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CurrencyBadge } from '@/components/ui/CurrencyBadge'
 import { TransactionRow } from '@/components/ui/TransactionRow'
@@ -167,6 +168,20 @@ export default async function TransactionDetailPage({ params }: { params: { id: 
           >
             <Pencil className="w-3.5 h-3.5" /> Edit
           </Link>
+          {!isTransfer && !isIncome && (
+            <CreateRecurringButton
+              transaction={{
+                id:        tx.id,
+                accountId: tx.accountId,
+                payee:     tx.payee,
+                note:      tx.note,
+                category:  tx.category,
+                currency:  currency,
+                amount:    amount,
+                date:      tx.date.toISOString(),
+              }}
+            />
+          )}
         </div>
       </div>
 
