@@ -14,12 +14,9 @@ export default async function CreditCardEditPage({ params }: { params: { id: str
   })
   if (!card) notFound()
 
-  const [incAgg, expAgg] = await Promise.all([
-    prisma.transaction.aggregate({ where: { accountId: card.id, type: 'income' }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({ where: { accountId: card.id, type: 'expense' }, _sum: { amount: true } }),
-  ])
-  const balance = Number(incAgg._sum.amount ?? 0) - Number(expAgg._sum.amount ?? 0)
-  const used = Math.abs(Math.min(balance, 0))
+  // Use the authoritative running total stored on the account — same source as the detail page
+  const currentBalance = Number(card.currentBalance)
+  const used = Math.max(0, currentBalance)
   const limit = card.creditLimit ? Number(card.creditLimit) : null
 
   return (
@@ -48,7 +45,7 @@ export default async function CreditCardEditPage({ params }: { params: { id: str
           network: card.network,
           accountType: card.accountType,
           creditLimit: limit,
-          balance,
+          currentBalance,
           used,
           logoUrl: card.logoUrl ?? null,
         }}

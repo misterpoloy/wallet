@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, AccountType, Currency, CardNetwork } from '@wallet/db'
 import { ok, noContent, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { balanceDelta } from '@/lib/account-balance'
 
 const UpdateAccountSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -81,35 +82,46 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: { ...fields, updatedBy: 'user' },
     })
 
-    // Balance adjustment: insert an income/expense tx to reconcile
+    // Balance adjustment: create an adjustment tx and atomically update currentBalance
     if (targetBalance !== undefined) {
-      const [incAgg, expAgg] = await Promise.all([
-        prisma.transaction.aggregate({ where: { accountId: existing.id, type: 'income' }, _sum: { amount: true } }),
-        prisma.transaction.aggregate({ where: { accountId: existing.id, type: 'expense' }, _sum: { amount: true } }),
-      ])
-      const currentBalance = Number(incAgg._sum.amount ?? 0) - Number(expAgg._sum.amount ?? 0)
-      const diff = targetBalance - currentBalance
+      // Use the authoritative running total — includes initialBalance, always correct
+      const currentBal = Number(existing.currentBalance)
+      const diff = targetBalance - currentBal
 
       if (Math.abs(diff) > 0.001) {
-        await prisma.transaction.create({
-          data: {
-            tenantId: DEFAULT_TENANT_ID,
-            accountId: existing.id,
-            type: diff > 0 ? 'income' : 'expense',
-            amount: Math.abs(diff),
-            refAmount: Math.abs(diff),
-            currency: existing.currency,
-            date: new Date(),
-            category: 'Balance Adjustment',
-            categoryRaw: 'Balance Adjustment',
-            paymentType: existing.accountType === 'credit_card' ? 'credit_card' : 'debit',
-            note: targetBalanceNote ?? 'Manual balance adjustment',
-            isTransfer: false,
-            isRecurring: false,
-            createdBy: 'agent:adjustment',
-            updatedBy: 'agent:adjustment',
-          },
-        })
+        const isCreditCard = existing.accountType === 'credit_card'
+        // CC: diff>0 means owe more → expense; diff<0 means paid down → income
+        // Bank: diff>0 means more money → income; diff<0 means less → expense
+        const txType = isCreditCard
+          ? (diff > 0 ? 'expense' : 'income')
+          : (diff > 0 ? 'income' : 'expense')
+        const delta = balanceDelta(existing.accountType, txType, Math.abs(diff))
+
+        await prisma.$transaction([
+          prisma.transaction.create({
+            data: {
+              tenantId: DEFAULT_TENANT_ID,
+              accountId: existing.id,
+              type: txType,
+              amount: Math.abs(diff),
+              refAmount: Math.abs(diff),
+              currency: existing.currency,
+              date: new Date(),
+              category: 'Balance Adjustment',
+              categoryRaw: 'Balance Adjustment',
+              paymentType: existing.accountType === 'credit_card' ? 'credit_card' : 'debit',
+              note: targetBalanceNote ?? 'Manual balance adjustment',
+              isTransfer: false,
+              isRecurring: false,
+              createdBy: 'agent:adjustment',
+              updatedBy: 'agent:adjustment',
+            },
+          }),
+          prisma.account.update({
+            where: { id: existing.id },
+            data: { currentBalance: { increment: delta } },
+          }),
+        ])
       }
     }
 
