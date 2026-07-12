@@ -14,11 +14,7 @@ export default async function BankAccountEditPage({ params }: { params: { id: st
   })
   if (!account) notFound()
 
-  const [incAgg, expAgg] = await Promise.all([
-    prisma.transaction.aggregate({ where: { accountId: account.id, type: 'income' }, _sum: { amount: true } }),
-    prisma.transaction.aggregate({ where: { accountId: account.id, type: 'expense' }, _sum: { amount: true } }),
-  ])
-  const balance = Number(incAgg._sum.amount ?? 0) - Number(expAgg._sum.amount ?? 0)
+  const currentBalance = Number(account.currentBalance)
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -45,7 +41,7 @@ export default async function BankAccountEditPage({ params }: { params: { id: st
           lastFour: account.lastFour ?? '',
           accountType: account.accountType,
           creditLimit: account.creditLimit ? Number(account.creditLimit) : null,
-          balance,
+          currentBalance,
           logoUrl: account.logoUrl ?? null,
           actionUrl: account.actionUrl ?? null,
         }}

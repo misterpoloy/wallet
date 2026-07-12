@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, RefreshCw, ExternalLink } from 'lucide-react'
+import { Check, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react'
 import Image from 'next/image'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { formatMoney } from '@/lib/utils'
@@ -34,7 +34,7 @@ interface AccountData {
   lastFour: string
   accountType: string
   creditLimit: number | null
-  balance: number
+  currentBalance: number
   logoUrl: string | null
   actionUrl: string | null
 }
@@ -62,17 +62,28 @@ export function AccountEditForm({ account }: Props) {
 
   // Balance adjustment
   const [adjustBalance, setAdjustBalance] = useState(false)
-  const [targetBalance, setTargetBalance] = useState(account.balance.toFixed(2))
+  const [adjustMode, setAdjustMode] = useState<'target' | 'delta'>('target')
+  const [targetInput, setTargetInput] = useState(account.currentBalance.toFixed(2))
+  const [deltaInput, setDeltaInput] = useState('')
+  const [deltaType, setDeltaType] = useState<'deposit' | 'withdrawal'>('deposit')
   const [balanceNote, setBalanceNote] = useState('Manual balance adjustment')
 
-  // Credit limit (for credit cards)
   const isCreditCard = account.accountType === 'credit_card'
   const [creditLimit, setCreditLimit] = useState(account.creditLimit?.toFixed(2) ?? '')
 
   const selectedPalette = PALETTES.find((p) => p.from === color && p.to === colorEnd)
-
-  const diff = adjustBalance ? Number(targetBalance) - account.balance : 0
   const currency = account.currency as 'MXN' | 'GTQ' | 'USD'
+
+  const computedTarget: number = (() => {
+    if (!adjustBalance) return account.currentBalance
+    if (adjustMode === 'target') return Number(targetInput) || 0
+    const delta = Math.max(0, Number(deltaInput) || 0)
+    return deltaType === 'deposit'
+      ? account.currentBalance + delta
+      : account.currentBalance - delta
+  })()
+
+  const diff = computedTarget - account.currentBalance
 
   function isValidUrl(val: string) {
     if (!val) return true
@@ -95,8 +106,8 @@ export function AccountEditForm({ account }: Props) {
       if (isCreditCard && creditLimit) body.creditLimit = Number(creditLimit)
       body.logoUrl = logoUrl || null
       body.actionUrl = actionUrl || null
-      if (adjustBalance) {
-        body.targetBalance = Number(targetBalance)
+      if (adjustBalance && Math.abs(diff) > 0.001) {
+        body.targetBalance = computedTarget
         body.targetBalanceNote = balanceNote
       }
 
@@ -154,8 +165,8 @@ export function AccountEditForm({ account }: Props) {
           <div className="flex items-end justify-between mt-4">
             <div>
               <p className="text-white/50 text-xs uppercase tracking-wider">Current Balance</p>
-              <p className="text-white text-3xl font-bold mt-1">
-                {formatMoney({ amount: Math.abs(adjustBalance ? Number(targetBalance) || 0 : account.balance), currency })}
+              <p className={`text-3xl font-bold mt-1 ${computedTarget < 0 ? 'text-rose-300' : 'text-white'}`}>
+                {computedTarget < 0 ? '-' : ''}{formatMoney({ amount: Math.abs(computedTarget), currency })}
               </p>
             </div>
             {actionUrl && isValidUrl(actionUrl) && (
@@ -315,10 +326,9 @@ export function AccountEditForm({ account }: Props) {
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Balance Adjustment</h3>
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Current Balance</h3>
             <p className="text-xs text-white/30 mt-1">
-              Current: {formatMoney({ amount: Math.abs(account.balance), currency })}
-              {account.balance < 0 ? ' (negative)' : ''}
+              Current: {account.currentBalance < 0 ? '-' : ''}{formatMoney({ amount: Math.abs(account.currentBalance), currency })}
             </p>
           </div>
           <button
@@ -330,22 +340,88 @@ export function AccountEditForm({ account }: Props) {
                 : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
             )}
           >
-            {adjustBalance ? 'Enabled' : 'Set balance'}
+            {adjustBalance ? 'Adjusting' : 'Adjust balance'}
           </button>
         </div>
 
         {adjustBalance && (
           <div className="space-y-4 pt-2 border-t border-white/[0.06]">
-            <Field label="Target balance">
-              <input
-                type="number"
-                value={targetBalance}
-                onChange={(e) => setTargetBalance(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </Field>
+            {/* Mode tabs */}
+            <div className="flex gap-1 p-1 bg-white/5 rounded-xl">
+              <button
+                onClick={() => setAdjustMode('target')}
+                className={cn(
+                  'flex-1 text-xs py-2 rounded-lg font-medium transition-all',
+                  adjustMode === 'target'
+                    ? 'bg-violet-500/30 text-violet-300 border border-violet-500/40'
+                    : 'text-white/40 hover:text-white/60'
+                )}
+              >
+                Set new balance
+              </button>
+              <button
+                onClick={() => setAdjustMode('delta')}
+                className={cn(
+                  'flex-1 text-xs py-2 rounded-lg font-medium transition-all',
+                  adjustMode === 'delta'
+                    ? 'bg-violet-500/30 text-violet-300 border border-violet-500/40'
+                    : 'text-white/40 hover:text-white/60'
+                )}
+              >
+                Add deposit / withdrawal
+              </button>
+            </div>
+
+            {adjustMode === 'target' ? (
+              <Field label="What should the balance be?">
+                <input
+                  type="number"
+                  value={targetInput}
+                  onChange={(e) => setTargetInput(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </Field>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDeltaType('deposit')}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5 rounded-xl font-medium border transition-all',
+                      deltaType === 'deposit'
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
+                    )}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" /> Deposit
+                  </button>
+                  <button
+                    onClick={() => setDeltaType('withdrawal')}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 text-xs py-2.5 rounded-xl font-medium border transition-all',
+                      deltaType === 'withdrawal'
+                        ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
+                    )}
+                  >
+                    <TrendingDown className="w-3.5 h-3.5" /> Withdrawal
+                  </button>
+                </div>
+                <Field label="Amount">
+                  <input
+                    type="number"
+                    value={deltaInput}
+                    onChange={(e) => setDeltaInput(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                  />
+                </Field>
+              </div>
+            )}
 
             <Field label="Note (shown in transactions)">
               <input
@@ -353,7 +429,7 @@ export function AccountEditForm({ account }: Props) {
                 value={balanceNote}
                 onChange={(e) => setBalanceNote(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition-all"
-                placeholder="Initial deposit / Reconciliation..."
+                placeholder="Manual balance adjustment"
               />
             </Field>
 
@@ -362,10 +438,15 @@ export function AccountEditForm({ account }: Props) {
                 'flex items-center gap-2 text-sm rounded-xl px-4 py-2.5',
                 diff > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
               )}>
-                <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
-                Will create {diff > 0 ? 'income' : 'expense'} of{' '}
+                {diff > 0
+                  ? <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+                  : <TrendingDown className="w-3.5 h-3.5 flex-shrink-0" />
+                }
+                Will record a{' '}
                 <strong>{formatMoney({ amount: Math.abs(diff), currency })}</strong>
-                {' '}to reach target
+                {diff > 0 ? ' deposit' : ' withdrawal'}.
+                {' '}New balance:{' '}
+                <strong>{computedTarget < 0 ? '-' : ''}{formatMoney({ amount: Math.abs(computedTarget), currency })}</strong>
               </div>
             )}
           </div>
