@@ -168,8 +168,29 @@ export default async function OverviewPage() {
   const monthMap: Record<string, MonthRow> = {}
 
   for (const period of periods) {
-    const loanItems  = loansByPeriod.get(period) ?? []
-    const incItems   = incomeByPeriod.get(period) ?? []
+    const loanItems = loansByPeriod.get(period) ?? []
+
+    // Merge tracked entries with projected items for sources that have no entry this period
+    const trackedItems  = incomeByPeriod.get(period) ?? []
+    const coveredIds    = new Set(trackedItems.map(i => i.sourceId))
+    const projectedItems: IncomeItem[] = incomeSources
+      .filter(src => !coveredIds.has(src.id))
+      .map(src => {
+        const grossMXN = toMXN(Number(src.grossAmount), src.currency)
+        const netMXN   = src.netAmount ? toMXN(Number(src.netAmount), src.currency) : grossMXN
+        return {
+          sourceId:  src.id,
+          name:      src.name,
+          currency:  src.currency,
+          gross:     Number(src.grossAmount),
+          net:       src.netAmount ? Number(src.netAmount) : Number(src.grossAmount),
+          grossMXN,
+          netMXN,
+          status:    'projected',
+          actualMXN: null,
+        }
+      })
+    const incItems = [...trackedItems, ...projectedItems]
 
     const loanTotalMXN = loanItems.reduce((s, l) => s + l.amountMXN, 0)
     const loanPaidMXN  = loanItems.filter(l => l.status === 'paid').reduce((s, l) => s + l.amountMXN, 0)
