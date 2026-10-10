@@ -6,9 +6,9 @@ import { CurrencyBadge } from '@/components/ui/CurrencyBadge'
 import { TransactionRow } from '@/components/ui/TransactionRow'
 import { prisma } from '@wallet/db'
 import { formatMoney } from '@/lib/utils'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 const FREQ_LABELS: Record<string, string> = {
   daily: 'Daily', weekly: 'Weekly', twice_monthly: '2× per Month',
@@ -33,6 +33,7 @@ const CATEGORY_META: Record<string, { icon: string; color: string }> = {
 const DEFAULT_META = { icon: '💳', color: 'from-white/20 to-white/10' }
 
 export default async function RecurringDetailPage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const item = await prisma.recurringExpense.findFirst({
     where: { id: params.id, tenantId: TENANT },
     include: {

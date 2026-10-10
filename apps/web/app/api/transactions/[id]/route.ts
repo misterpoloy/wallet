@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, TransactionType, PaymentType } from '@wallet/db'
-import { ok, noContent, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, noContent, notFound, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 import { balanceDelta } from '@/lib/account-balance'
 
 const UpdateTransactionSchema = z.object({
@@ -24,8 +26,9 @@ const UpdateTransactionSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
     const tx = await prisma.transaction.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: {
         account: {
           select: {
@@ -77,11 +80,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = UpdateTransactionSchema.parse(body)
+    await assertOwned(ctx, { recurring: [data.recurringId] })
 
     const existing = await prisma.transaction.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: { account: { select: { accountType: true } } },
     })
     if (!existing) return notFound()
@@ -122,8 +128,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const existing = await prisma.transaction.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: { account: { select: { accountType: true } } },
     })
     if (!existing) return notFound()

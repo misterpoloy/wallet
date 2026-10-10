@@ -1,11 +1,12 @@
 import { prisma } from '@wallet/db'
 import { Header } from '@/components/layout/Header'
 import { IncomePageWrapper } from './IncomePageWrapper'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 export default async function IncomePage() {
+  const { tenantId: TENANT } = await getServerCtx()
   const sources = await prisma.incomeSource.findMany({
     where: { tenantId: TENANT },
     include: {

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
-import { ok, badRequest, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, badRequest, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
 
 // Full import logic lives in packages/scripts/import.ts
 // This endpoint triggers it via HTTP (useful for future admin UI)
@@ -10,6 +11,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json().catch(() => ({}))
 
     if (!body.filename) {
@@ -19,7 +22,7 @@ export async function POST(req: NextRequest) {
     // For now, just acknowledge — actual import runs via CLI script
     return ok({
       message: 'Import queued. Run via CLI for full processing.',
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: ctx.tenantId,
     })
   } catch (e) {
     return handleError(e)

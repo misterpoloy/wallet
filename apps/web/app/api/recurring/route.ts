@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, RecurringFrequency } from '@wallet/db'
-import { ok, created, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, created, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 
 const CreateRecurringSchema = z.object({
   accountId: z.string().min(1),
@@ -23,13 +25,14 @@ const CreateRecurringSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
     const { searchParams } = new URL(req.url)
     const activeOnly = searchParams.get('active') !== 'false'
     const accountId = searchParams.get('accountId')
 
     const recurring = await prisma.recurringExpense.findMany({
       where: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: ctx.tenantId,
         ...(activeOnly && { isActive: true }),
         ...(accountId && { accountId }),
       },
@@ -58,12 +61,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = CreateRecurringSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.accountId] })
 
     const recurring = await prisma.recurringExpense.create({
       data: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: ctx.tenantId,
         accountId: data.accountId,
         name: data.name,
         category: data.category,

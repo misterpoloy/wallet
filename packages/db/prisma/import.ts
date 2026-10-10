@@ -23,7 +23,7 @@ const args = process.argv.slice(2)
 const fileArg = args.find((a) => a.startsWith('--file='))?.split('=')[1]
   ?? args[args.indexOf('--file') + 1]
 const DRY_RUN = args.includes('--dry-run')
-const TENANT = 'tenant_portiz'
+const TENANT = process.env.TENANT_ID ?? 'tenant_portiz'
 
 if (!fileArg) {
   console.error('❌  Usage: ts-node prisma/import.ts --file <path-to-csv> [--dry-run]')

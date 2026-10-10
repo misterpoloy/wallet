@@ -5,7 +5,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
-const TENANT = 'tenant_portiz'
+const TENANT = process.env.TENANT_ID ?? 'tenant_portiz'
 
 async function main() {
   console.log('🌱  Seeding loan data…\n')

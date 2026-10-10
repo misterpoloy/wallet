@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CheckSquare, ChevronDown, Search, Bell, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { currentUser } from '@/lib/mock-data'
+import type { ShellUser } from './types'
 
 // ── Waffle icon (Microsoft-style 3×3 grid) ───────────────────────────────────
 function WaffleIcon({ className }: { className?: string }) {
@@ -156,7 +156,7 @@ function AppLauncher({ activeAppId, onClose }: { activeAppId: string; onClose: (
 }
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
-export function TopBar() {
+export function TopBar({ user: currentUser }: { user: ShellUser }) {
   const [launcherOpen, setLauncherOpen] = useState(false)
   const pathname = usePathname()
 

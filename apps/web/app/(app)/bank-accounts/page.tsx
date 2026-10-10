@@ -2,11 +2,12 @@ import { prisma } from '@wallet/db'
 import { Header } from '@/components/layout/Header'
 import { BankAccountsTable } from './BankAccountsTable'
 import { CreateBankAccountButton } from './CreateBankAccountButton'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 async function getAccounts() {
+  const { tenantId: TENANT } = await getServerCtx()
   const accounts = await prisma.account.findMany({
     where: {
       tenantId: TENANT,

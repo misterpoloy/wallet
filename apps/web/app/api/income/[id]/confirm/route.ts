@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, PaymentType } from '@wallet/db'
-import { ok, badRequest, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, badRequest, notFound, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
 
 const ConfirmSchema = z.object({
   period:       z.string().regex(/^\d{4}-\d{2}$/),
@@ -16,8 +17,10 @@ const ConfirmSchema = z.object({
 // Atomically: creates income Transaction + upserts IncomeEntry with transactionId
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const source = await prisma.incomeSource.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: { account: { select: { id: true, currency: true } } },
     })
     if (!source) return notFound()
@@ -35,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const [transaction, entry] = await prisma.$transaction(async (tx) => {
       const txn = await tx.transaction.create({
         data: {
-          tenantId:    DEFAULT_TENANT_ID,
+          tenantId:    ctx.tenantId,
           accountId:   source.accountId!,
           type:        'income',
           amount:      data.amount,

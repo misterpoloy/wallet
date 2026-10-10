@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { Prisma } from '@wallet/db'
+import { ForbiddenError, UnauthorizedError } from '@/lib/auth/ctx'
+import { NotFoundError } from '@/lib/auth/ownership'
 
 export function ok<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status })
@@ -23,6 +25,10 @@ export function badRequest(message: string, details?: unknown) {
 }
 
 export function handleError(error: unknown) {
+  if (error instanceof UnauthorizedError || error instanceof ForbiddenError || error instanceof NotFoundError) {
+    return NextResponse.json({ success: false, error: error.message }, { status: error.status })
+  }
+
   console.error('[API Error]', error)
 
   if (error instanceof ZodError) {
@@ -43,6 +49,3 @@ export function handleError(error: unknown) {
     { status: 500 }
   )
 }
-
-// Temporary: until Auth is wired (Stage 4), use a default tenant
-export const DEFAULT_TENANT_ID = 'tenant_portiz'

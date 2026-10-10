@@ -9,12 +9,13 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC.some(p => pathname.startsWith(p))) return NextResponse.next()
 
   const token = req.cookies.get(COOKIE_NAME)?.value
-  if (!token) return NextResponse.redirect(new URL('/login', req.url))
-
-  const session = await verifySessionToken(token)
+  const session = token ? await verifySessionToken(token) : null
   if (!session) {
-    const res = NextResponse.redirect(new URL('/login', req.url))
-    res.cookies.delete(COOKIE_NAME)
+    // API callers (web fetch, iOS app) get a JSON 401 they can act on; pages go to /login.
+    const res = pathname.startsWith('/api/')
+      ? NextResponse.json({ success: false, error: 'Not signed in' }, { status: 401 })
+      : NextResponse.redirect(new URL('/login', req.url))
+    if (token) res.cookies.delete(COOKIE_NAME)
     return res
   }
 

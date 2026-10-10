@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, LoanType } from '@wallet/db'
-import { ok, created, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, created, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 
 const CreateSchema = z.object({
   name:            z.string().min(1).max(100),
@@ -21,8 +23,9 @@ const CreateSchema = z.object({
 
 export async function GET() {
   try {
+    const ctx = await requireCtx()
     const loans = await prisma.loan.findMany({
-      where: { tenantId: DEFAULT_TENANT_ID },
+      where: { tenantId: ctx.tenantId },
       include: { payments: { orderBy: { period: 'asc' } } },
       orderBy: { startDate: 'desc' },
     })
@@ -32,12 +35,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = CreateSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.linkedAccountId] })
 
     const loan = await prisma.loan.create({
       data: {
-        tenantId:        DEFAULT_TENANT_ID,
+        tenantId:        ctx.tenantId,
         name:            data.name,
         type:            data.type,
         lender:          data.lender,
