@@ -7,6 +7,8 @@ import { GlobalLoaderProvider } from '@/components/ui/GlobalLoader'
 import { prisma } from '@wallet/db'
 import { getServerCtx } from '@/lib/auth/ctx'
 import type { ShellUser } from '@/components/layout/types'
+import { MansaProvider } from '@/components/mansa/MansaProvider'
+import { mansaEnabled } from '@/lib/mansa/flags'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getServerCtx()
@@ -16,20 +18,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   })
   const user: ShellUser = row ?? { name: ctx.email, email: ctx.email, avatarColor: '#7c3aed' }
 
+  const mansa = mansaEnabled() && ctx.role !== 'viewer'
+
   return (
     <GlobalLoaderProvider>
-      <TimezoneProvider>
-        <Suspense>
-          <NavigationLoader />
-        </Suspense>
-        <TopBar user={user} />
-        <div className="flex min-h-screen pt-11">
-          <Sidebar user={user} />
-          <main className="flex-1 ml-[220px] min-h-screen relative z-10">
-            <div className="max-w-6xl mx-auto px-6 md:px-8 py-8">{children}</div>
-          </main>
-        </div>
-      </TimezoneProvider>
+      <MansaProvider enabled={mansa}>
+        <TimezoneProvider>
+          <Suspense>
+            <NavigationLoader />
+          </Suspense>
+          <TopBar user={user} />
+          <div className="flex min-h-screen pt-11">
+            <Sidebar user={user} />
+            <main className="flex-1 ml-[220px] min-h-screen relative z-10">
+              <div className="max-w-6xl mx-auto px-6 md:px-8 py-8">{children}</div>
+            </main>
+          </div>
+        </TimezoneProvider>
+      </MansaProvider>
     </GlobalLoaderProvider>
   )
 }
