@@ -5,9 +5,9 @@ import { prisma } from '@wallet/db'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { formatMoney, cn } from '@/lib/utils'
 import { LoanDetailClient } from './LoanDetailClient'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -24,6 +24,7 @@ const STATUS_CONFIG = {
 }
 
 export default async function LoanDetailPage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const loan = await prisma.loan.findFirst({
     where: { id: params.id, tenantId: TENANT },
     include: { payments: { orderBy: { period: 'asc' } } },

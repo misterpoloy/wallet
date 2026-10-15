@@ -11,9 +11,9 @@ import { AddTransactionFAB } from '@/components/ui/AddTransactionFAB'
 import { prisma } from '@wallet/db'
 import { formatMoney, cn } from '@/lib/utils'
 import { dayKeyInTz, DEFAULT_TIMEZONE } from '@/lib/timezone'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 function fmtDay(d: Date) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -40,9 +40,10 @@ export default async function BankAccountDetailPage({
   params: { id: string }
   searchParams: { month?: string }
 }) {
+  const { tenantId: TENANT, userId } = await getServerCtx()
   const [account, userRow] = await Promise.all([
     prisma.account.findFirst({ where: { id: params.id, tenantId: TENANT } }),
-    prisma.user.findFirst({ where: { email: 'jp@calaps.com' }, select: { timezone: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
   ])
   if (!account) notFound()
   const tz = userRow?.timezone ?? DEFAULT_TIMEZONE

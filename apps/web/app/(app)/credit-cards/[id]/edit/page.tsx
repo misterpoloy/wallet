@@ -4,11 +4,12 @@ import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@wallet/db'
 import { CreditCardEditForm } from './CreditCardEditForm'
 import { DeleteAccountSection } from '@/components/ui/DeleteAccountSection'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 export default async function CreditCardEditPage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const card = await prisma.account.findFirst({
     where: { id: params.id, tenantId: TENANT, accountType: 'credit_card' },
   })

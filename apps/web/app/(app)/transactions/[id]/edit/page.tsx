@@ -4,11 +4,12 @@ import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@wallet/db'
 import { TransactionEditForm } from './TransactionEditForm'
 import { toNum } from '@/lib/api-client'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 export default async function TransactionEditPage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const tx = await prisma.transaction.findFirst({
     where: { id: params.id, tenantId: TENANT },
     include: { account: { select: { name: true, institution: true, color: true, colorEnd: true } } },

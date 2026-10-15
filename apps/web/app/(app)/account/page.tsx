@@ -6,35 +6,33 @@ import { getInitials, formatDate } from '@/lib/utils'
 import { DEFAULT_TIMEZONE } from '@/lib/timezone'
 import { LogOutButton } from './LogOutButton'
 import { TimezoneSettings } from './TimezoneSettings'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 async function getAccountData() {
-  const [member, userRow] = await Promise.all([
-    prisma.tenantMember.findFirst({
-      where: { tenantId: TENANT },
-      include: { user: true, tenant: true },
-      orderBy: { joinedAt: 'asc' },
-    }),
-    prisma.user.findFirst({ where: { email: 'jp@calaps.com' }, select: { timezone: true } }),
-  ])
-  return { member, timezone: userRow?.timezone ?? DEFAULT_TIMEZONE }
+  const { tenantId, userId } = await getServerCtx()
+  const member = await prisma.tenantMember.findUnique({
+    where: { tenantId_userId: { tenantId, userId } },
+    include: { user: true, tenant: true },
+  })
+  return { member, timezone: member?.user.timezone ?? DEFAULT_TIMEZONE }
 }
 
 export default async function AccountPage() {
+  const ctx = await getServerCtx()
   const { member, timezone } = await getAccountData()
 
   const user = member?.user
   const tenant = member?.tenant
 
-  const name = user?.name ?? 'Juan Portiz'
-  const email = user?.email ?? 'jp@calaps.com'
-  const role = member?.role ?? 'owner'
+  const name = user?.name ?? ctx.email
+  const email = user?.email ?? ctx.email
+  const role = member?.role ?? ctx.role
   const joinedAt = member?.joinedAt ?? new Date('2024-01-14')
-  const tenantName = tenant?.name ?? 'Portiz Family'
+  const tenantName = tenant?.name ?? 'My wallet'
   const tenantPlan = tenant?.plan ?? 'family'
-  const tenantId = tenant?.id ?? TENANT
+  const tenantId = tenant?.id ?? ctx.tenantId
 
   return (
     <div className="space-y-8">

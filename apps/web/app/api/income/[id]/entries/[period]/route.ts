@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, EntryStatus } from '@wallet/db'
-import { ok, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, notFound, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 
 const PatchSchema = z.object({
   status:        z.nativeEnum(EntryStatus),
@@ -19,13 +21,16 @@ export async function PATCH(
   { params }: { params: { id: string; period: string } }
 ) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const source = await prisma.incomeSource.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
     })
     if (!source) return notFound()
 
     const body = await req.json()
     const data = PatchSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.accountId] })
 
     const receivedAt = data.receivedAt
       ? new Date(data.receivedAt)

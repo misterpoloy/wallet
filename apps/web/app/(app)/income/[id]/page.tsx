@@ -8,9 +8,9 @@ import { prisma } from '@wallet/db'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { formatMoney, cn } from '@/lib/utils'
 import { IncomeDetailClient } from './IncomeDetailClient'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 function fmt(amount: number, currency: string) {
   return formatMoney({ amount, currency: currency as any })
@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function IncomeDetailPage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const source = await prisma.incomeSource.findFirst({
     where: { id: params.id, tenantId: TENANT },
     include: {

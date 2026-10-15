@@ -1,11 +1,12 @@
 import { prisma } from '@wallet/db'
 import { Header } from '@/components/layout/Header'
 import { LoansPageWrapper } from './LoansPageWrapper'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 export default async function LoansPage() {
+  const { tenantId: TENANT } = await getServerCtx()
   const loans = await prisma.loan.findMany({
     where: { tenantId: TENANT },
     include: { payments: { orderBy: { period: 'asc' } } },

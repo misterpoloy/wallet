@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1149.0",
+    "@mansamusa/core": "git+https://github.com/misterpoloy/mansamusa.git#workspace=@mansamusa/core&commit=82fd35893b643eff513d263f64919dcafcc24fe7",
+    "@vercel/functions": "^3.9.11",
     "@wallet/db": "*",
     "@wallet/types": "*",
     "clsx": "^2.1.1",

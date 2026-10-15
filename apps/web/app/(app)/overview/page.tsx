@@ -1,9 +1,9 @@
 import { prisma } from '@wallet/db'
 import { Header } from '@/components/layout/Header'
 import { OverviewClient } from './OverviewClient'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 // ── FX rates to MXN (unified reference currency) ───────────────────────────
 const FX_TO_MXN: Record<string, number> = {
@@ -67,6 +67,7 @@ export type MonthRow = {
 
 // ── Main page ───────────────────────────────────────────────────────────────
 export default async function OverviewPage() {
+  const { tenantId: TENANT } = await getServerCtx()
   const [loans, incomeSources, recurring] = await Promise.all([
     prisma.loan.findMany({
       where:   { tenantId: TENANT },

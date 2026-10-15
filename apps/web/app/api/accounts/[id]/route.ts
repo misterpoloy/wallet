@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, AccountType, Currency, CardNetwork } from '@wallet/db'
-import { ok, noContent, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, noContent, notFound, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
 import { balanceDelta } from '@/lib/account-balance'
 
 const UpdateAccountSchema = z.object({
@@ -27,8 +28,9 @@ const UpdateAccountSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
     const account = await prisma.account.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: {
         transactions: {
           orderBy: { date: 'desc' },
@@ -67,11 +69,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = UpdateAccountSchema.parse(body)
 
     const existing = await prisma.account.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
     })
     if (!existing) return notFound()
 
@@ -100,7 +104,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         await prisma.$transaction([
           prisma.transaction.create({
             data: {
-              tenantId: DEFAULT_TENANT_ID,
+              tenantId: ctx.tenantId,
               accountId: existing.id,
               type: txType,
               amount: Math.abs(diff),
@@ -137,8 +141,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const existing = await prisma.account.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
     })
     if (!existing) return notFound()
 
