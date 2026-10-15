@@ -458,16 +458,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mansamusa/core@portal:../../../mansamusa/packages/core::locator=%40wallet%2Fweb%40workspace%3Aapps%2Fweb":
-  version: 0.0.0-use.local
-  resolution: "@mansamusa/core@portal:../../../mansamusa/packages/core::locator=%40wallet%2Fweb%40workspace%3Aapps%2Fweb"
+"@mansamusa/core@git+https://github.com/misterpoloy/mansamusa.git#workspace=@mansamusa/core&commit=82fd35893b643eff513d263f64919dcafcc24fe7":
+  version: 0.1.0
+  resolution: "@mansamusa/core@https://github.com/misterpoloy/mansamusa.git#workspace=%40mansamusa%2Fcore&commit=82fd35893b643eff513d263f64919dcafcc24fe7"
   dependencies:
     "@aws-sdk/client-bedrock-runtime": "npm:^3.1149.0"
     zod-to-json-schema: "npm:^3.25.2"
   peerDependencies:
     zod: ^3.23.0
+  checksum: 10c0/91d8a0abc4a06650f8f52d9b98be5e1879e68555c06362cc4a0de80070b32e33de53a5cf3d7674599ef037b1de16b5237c4f555ebc7a932f160fb193e442c775
   languageName: node
-  linkType: soft
+  linkType: hard
 
 "@napi-rs/wasm-runtime@npm:^1.1.4":
   version: 1.1.4
@@ -1270,7 +1271,7 @@ __metadata:
   resolution: "@wallet/web@workspace:apps/web"
   dependencies:
     "@aws-sdk/client-bedrock-runtime": "npm:^3.1149.0"
-    "@mansamusa/core": "portal:../../../mansamusa/packages/core"
+    "@mansamusa/core": "git+https://github.com/misterpoloy/mansamusa.git#workspace=@mansamusa/core&commit=82fd35893b643eff513d263f64919dcafcc24fe7"
     "@types/node": "npm:^20"
     "@types/react": "npm:^18"
     "@types/react-dom": "npm:^18"

@@ -25,6 +25,10 @@ export function badRequest(message: string, details?: unknown) {
 }
 
 export function handleError(error: unknown) {
+  // Next.js signals "this route is dynamic" by throwing during build-time rendering
+  // (e.g. when cookies() is read). It must propagate, never become a JSON 500.
+  if ((error as { digest?: string } | null)?.digest === 'DYNAMIC_SERVER_USAGE') throw error
+
   if (error instanceof UnauthorizedError || error instanceof ForbiddenError || error instanceof NotFoundError) {
     return NextResponse.json({ success: false, error: error.message }, { status: error.status })
   }
