@@ -37,13 +37,16 @@ let client: ReturnType<typeof createBedrockClient> | undefined
 
 /**
  * On Vercel: short-lived credentials from the project's OIDC token (no static keys).
+ * Vercel injects placeholder AWS_* credentials and a runtime AWS_REGION into every
+ * function, so we never rely on the default chain or AWS_REGION there.
  * Locally: the default AWS credential chain (AWS_PROFILE / ~/.aws).
  */
 export function bedrock() {
   if (!client) {
     const roleArn = process.env.AWS_ROLE_ARN
+    if (process.env.VERCEL && !roleArn) throw new Error('AWS_ROLE_ARN is not set (Vercel OIDC role for Bedrock)')
     client = createBedrockClient({
-      region: process.env.AWS_REGION ?? 'us-east-1',
+      region: process.env.MANSA_AWS_REGION ?? 'us-east-1',
       ...(process.env.VERCEL && roleArn ? { credentials: awsCredentialsProvider({ roleArn }) } : {}),
     })
   }
