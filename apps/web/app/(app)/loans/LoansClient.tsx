@@ -11,6 +11,11 @@ import { useGlobalLoader } from '@/components/ui/GlobalLoader'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
+function progressGradient(pct: number): string {
+  const startHue = Math.round(Math.min(pct, 100) * 1.42)
+  return `linear-gradient(to right, hsl(${startHue}, 80%, 50%), hsl(142, 76%, 48%))`
+}
+
 type Payment = {
   id: string
   period: string
@@ -316,7 +321,7 @@ function LoanCard({ loan, year, onUpdate }: { loan: Loan; year: number; onUpdate
           <span>{progress}% paid off · {paid} of {loan.termMonths} payments</span>
         </div>
         <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-rose-500 to-emerald-500 transition-all" style={{ width: `${progress}%` }} />
+          <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: progressGradient(progress) }} />
         </div>
       </div>
 

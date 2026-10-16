@@ -7,7 +7,7 @@ const TENANT = 'tenant_portiz'
 
 export default async function LoansPage() {
   const loans = await prisma.loan.findMany({
-    where: { tenantId: TENANT },
+    where: { tenantId: TENANT, isActive: true },
     include: { payments: { orderBy: { period: 'asc' } } },
     orderBy: { startDate: 'desc' },
   })
