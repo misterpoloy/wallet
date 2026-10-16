@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function LoansPage() {
   const { tenantId: TENANT } = await getServerCtx()
   const loans = await prisma.loan.findMany({
-    where: { tenantId: TENANT },
+    where: { tenantId: TENANT, isActive: true },
     include: { payments: { orderBy: { period: 'asc' } } },
     orderBy: { startDate: 'desc' },
   })

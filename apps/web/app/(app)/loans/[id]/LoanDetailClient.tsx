@@ -38,10 +38,16 @@ function fmt(amount: number, currency: string) {
   return formatMoney({ amount, currency: currency as any })
 }
 
+type SortKey = 'index' | 'period' | 'dueDate' | 'principal' | 'interest' | 'payment' | 'status'
+
+const STATUS_ORDER: Record<string, number> = { paid: 0, partial: 1, scheduled: 2, missed: 3, skipped: 4 }
+
 export function LoanDetailClient({ loan }: { loan: Loan }) {
   const router = useRouter()
   const [toggling, setToggling] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('index')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const now = new Date()
   const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -58,7 +64,41 @@ export function LoanDetailClient({ loan }: { loan: Loan }) {
     setToggling(null)
   }
 
-  const displayedPayments = showAll ? loan.payments : loan.payments.slice(0, 12)
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  function SortIcon({ col }: { col: SortKey }) {
+    if (sortKey !== col) return <ChevronDown className="w-3 h-3 opacity-0 group-hover/th:opacity-30 transition-opacity" />
+    return sortDir === 'asc'
+      ? <ChevronUp className="w-3 h-3 text-violet-400" />
+      : <ChevronDown className="w-3 h-3 text-violet-400" />
+  }
+
+  const indexedPayments = loan.payments.map((p, i) => ({ ...p, _index: i }))
+
+  const sorted = [...indexedPayments].sort((a, b) => {
+    let cmp = 0
+    switch (sortKey) {
+      case 'index':     cmp = a._index - b._index; break
+      case 'period':    cmp = a.period.localeCompare(b.period); break
+      case 'dueDate':   cmp = a.dueDate.localeCompare(b.dueDate); break
+      case 'principal': cmp = (a.principalAmount ?? 0) - (b.principalAmount ?? 0); break
+      case 'interest':  cmp = (a.interestAmount ?? 0) - (b.interestAmount ?? 0); break
+      case 'payment':   cmp = (a.paidAmount ?? a.dueAmount) - (b.paidAmount ?? b.dueAmount); break
+      case 'status':    cmp = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9); break
+    }
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+
+  const displayedPayments = showAll ? sorted : sorted.slice(0, 12)
+
+  const thBase = "text-left text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold cursor-pointer select-none group/th hover:text-white/50 transition-colors"
 
   return (
     <GlassCard>
@@ -70,17 +110,17 @@ export function LoanDetailClient({ loan }: { loan: Loan }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/[0.07]">
-              <th className="text-left text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">#</th>
-              <th className="text-left text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">Period</th>
-              <th className="text-left text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">Due Date</th>
-              <th className="text-right text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">Principal</th>
-              <th className="text-right text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">Interest</th>
-              <th className="text-right text-[10px] text-white/30 uppercase tracking-wider py-2.5 pr-4 font-semibold">Payment</th>
-              <th className="text-center text-[10px] text-white/30 uppercase tracking-wider py-2.5 font-semibold">Status</th>
+              <th className={thBase} onClick={() => toggleSort('index')}><span className="inline-flex items-center gap-1"># <SortIcon col="index" /></span></th>
+              <th className={thBase} onClick={() => toggleSort('period')}><span className="inline-flex items-center gap-1">Period <SortIcon col="period" /></span></th>
+              <th className={thBase} onClick={() => toggleSort('dueDate')}><span className="inline-flex items-center gap-1">Due Date <SortIcon col="dueDate" /></span></th>
+              <th className={cn(thBase, 'text-right')} onClick={() => toggleSort('principal')}><span className="inline-flex items-center gap-1 justify-end">Principal <SortIcon col="principal" /></span></th>
+              <th className={cn(thBase, 'text-right')} onClick={() => toggleSort('interest')}><span className="inline-flex items-center gap-1 justify-end">Interest <SortIcon col="interest" /></span></th>
+              <th className={cn(thBase, 'text-right')} onClick={() => toggleSort('payment')}><span className="inline-flex items-center gap-1 justify-end">Payment <SortIcon col="payment" /></span></th>
+              <th className={cn(thBase, 'text-center pr-0')} onClick={() => toggleSort('status')}><span className="inline-flex items-center gap-1 justify-center">Status <SortIcon col="status" /></span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.04]">
-            {displayedPayments.map((p, i) => {
+            {displayedPayments.map((p) => {
               const isCurrent = p.period === currentPeriod
               const cfg = STATUS_ICON[p.status as keyof typeof STATUS_ICON] ?? STATUS_ICON.scheduled
               const { Icon } = cfg
@@ -100,7 +140,7 @@ export function LoanDetailClient({ loan }: { loan: Loan }) {
                   )}
                 >
                   <td className="py-3 pr-4">
-                    <span className="text-xs text-white/30 tabular-nums font-mono">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-xs text-white/30 tabular-nums font-mono">{String(p._index + 1).padStart(2, '0')}</span>
                   </td>
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2">
