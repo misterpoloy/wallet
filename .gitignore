@@ -35,3 +35,16 @@ yarn-debug.log*
 *.tsbuildinfo
 
 # NOTE: data/ is intentionally tracked in git (seed files)
+
+# Personal data & local-only files — never commit (kept outside the repo, in ../wallet-private)
+/TODO.md
+/generated/
+package-lock.json
+packages/db/prisma/private/
+packages/db/prisma/*-api.mjs
+packages/db/prisma/*.cjs
+packages/db/prisma/seed-*20[0-9][0-9]*
+packages/db/prisma/fix-*
+packages/db/prisma/recompute-*
+packages/db/prisma/calibrate-*
+packages/db/prisma/mark-*
