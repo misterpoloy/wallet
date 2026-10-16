@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, RecurringFrequency } from '@wallet/db'
-import { ok, notFound, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, notFound, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 
 const UpdateSchema = z.object({
   name:        z.string().min(1).max(200).optional(),
@@ -21,8 +23,9 @@ const UpdateSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
     const item = await prisma.recurringExpense.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: {
         account: { select: { id: true, name: true, institution: true, color: true, colorEnd: true, currency: true, lastFour: true } },
         transactions: {
@@ -42,11 +45,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = UpdateSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.accountId] })
 
     const existing = await prisma.recurringExpense.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
     })
     if (!existing) return notFound('Recurring expense not found')
 
@@ -70,8 +76,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const existing = await prisma.recurringExpense.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
     })
     if (!existing) return notFound('Recurring expense not found')
 

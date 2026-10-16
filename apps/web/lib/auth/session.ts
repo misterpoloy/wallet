@@ -11,8 +11,21 @@ export interface SessionPayload {
   exp: number
 }
 
+// The dev fallback is public (it is in this repo), so production must never use it:
+// a missing secret there would let anyone mint a valid session cookie.
+const DEV_SECRET = 'dev-secret-change-in-production-min32chars!!'
+
+function sessionSecret(): string {
+  const secret = process.env.WALLET_SESSION_SECRET
+  if (secret && secret.length >= 32) return secret
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('WALLET_SESSION_SECRET must be set (min 32 chars) in production')
+  }
+  return DEV_SECRET
+}
+
 async function getKey(): Promise<CryptoKey> {
-  const secret = process.env.WALLET_SESSION_SECRET ?? 'dev-secret-change-in-production-min32chars!!'
+  const secret = sessionSecret()
   return crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),

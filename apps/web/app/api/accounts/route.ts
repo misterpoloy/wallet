@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, AccountType, Currency, CardNetwork } from '@wallet/db'
-import { ok, created, badRequest, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, created, badRequest, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ const CreateAccountSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type') as AccountType | null
     const currency = searchParams.get('currency') as Currency | null
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const accounts = await prisma.account.findMany({
       where: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: ctx.tenantId,
         ...(activeOnly && { isActive: true }),
         ...(type && { accountType: type }),
         ...(currency && { currency }),
@@ -80,6 +82,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = CreateAccountSchema.parse(body)
 
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     const account = await prisma.account.create({
       data: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: ctx.tenantId,
         name: data.name,
         institution: data.institution,
         accountType: data.accountType,

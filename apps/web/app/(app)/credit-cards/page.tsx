@@ -5,14 +5,15 @@ import { formatMoney } from '@/lib/utils'
 import { creditCardStats } from '@/lib/account-balance'
 import { CreateCreditCardButton } from './CreateCreditCardButton'
 import { CreditCardsView } from './CreditCardsView'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 // Approximate FX rates → MXN (update as needed)
 const TO_MXN = { MXN: 1, USD: 17.5, GTQ: 2.27 }
 
 async function getCards() {
+  const { tenantId: TENANT } = await getServerCtx()
   const cards = await prisma.account.findMany({
     where: { tenantId: TENANT, isActive: true, accountType: 'credit_card' },
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],

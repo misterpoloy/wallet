@@ -1,9 +1,9 @@
 import { Header } from '@/components/layout/Header'
 import { prisma } from '@wallet/db'
 import { RecurringClient } from './RecurringClient'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 const FREQ_MULT: Record<string, number> = {
   daily: 30.4167, weekly: 4.3333, twice_monthly: 2,
@@ -11,6 +11,7 @@ const FREQ_MULT: Record<string, number> = {
 }
 
 async function getRecurring() {
+  const { tenantId: TENANT } = await getServerCtx()
   return prisma.recurringExpense.findMany({
     where: { tenantId: TENANT, isActive: true },
     include: {

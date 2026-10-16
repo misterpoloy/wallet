@@ -3,11 +3,12 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@wallet/db'
 import { EditIncomePageClient } from './EditIncomePageClient'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 export default async function EditIncomePage({ params }: { params: { id: string } }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const [source, accounts] = await Promise.all([
     prisma.incomeSource.findFirst({
       where: { id: params.id, tenantId: TENANT },

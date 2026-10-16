@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, IncomeType, PayFrequency } from '@wallet/db'
-import { ok, notFound, noContent, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, notFound, noContent, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 
 const PatchSchema = z.object({
   name:        z.string().min(1).max(100).optional(),
@@ -20,8 +22,9 @@ const PatchSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const ctx = await requireCtx()
     const source = await prisma.incomeSource.findFirst({
-      where: { id: params.id, tenantId: DEFAULT_TENANT_ID },
+      where: { id: params.id, tenantId: ctx.tenantId },
       include: { entries: { orderBy: { period: 'asc' } } },
     })
     if (!source) return notFound()
@@ -31,10 +34,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const source = await prisma.incomeSource.findFirst({ where: { id: params.id, tenantId: DEFAULT_TENANT_ID } })
+    const ctx = await requireCtx()
+    requireWriter(ctx)
+    const source = await prisma.incomeSource.findFirst({ where: { id: params.id, tenantId: ctx.tenantId } })
     if (!source) return notFound()
     const body = await req.json()
     const data = PatchSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.accountId] })
     const updated = await prisma.incomeSource.update({
       where: { id: params.id },
       data: {
@@ -51,7 +57,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const source = await prisma.incomeSource.findFirst({ where: { id: params.id, tenantId: DEFAULT_TENANT_ID } })
+    const ctx = await requireCtx()
+    requireWriter(ctx)
+    const source = await prisma.incomeSource.findFirst({ where: { id: params.id, tenantId: ctx.tenantId } })
     if (!source) return notFound()
     await prisma.incomeSource.delete({ where: { id: params.id } })
     return noContent()

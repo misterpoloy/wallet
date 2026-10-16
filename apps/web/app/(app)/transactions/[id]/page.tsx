@@ -12,12 +12,13 @@ import { getCardNetworkAsset, getCardNetworkLabel } from '@/lib/card-network'
 import { prisma } from '@wallet/db'
 import { formatMoney, formatDate, cn } from '@/lib/utils'
 import { toNum } from '@/lib/api-client'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
 
-const TENANT = 'tenant_portiz'
 
 async function getTx(id: string) {
+  const { tenantId: TENANT } = await getServerCtx()
   const tx = await prisma.transaction.findFirst({
     where: { id, tenantId: TENANT },
     include: {

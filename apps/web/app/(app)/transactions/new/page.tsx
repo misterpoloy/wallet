@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { prisma } from '@wallet/db'
 import { NewTransactionForm } from './NewTransactionForm'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 const serialize = (a: {
   id: string; name: string; institution: string; color: string; colorEnd: string
@@ -24,6 +24,7 @@ export default async function NewTransactionPage({
     amount?: string; category?: string; payee?: string; note?: string; date?: string
   }
 }) {
+  const { tenantId: TENANT } = await getServerCtx()
   const accountId = searchParams.accountId
   const initialType = ['expense', 'income', 'transfer'].includes(searchParams.type ?? '')
     ? (searchParams.type as 'expense' | 'income' | 'transfer')

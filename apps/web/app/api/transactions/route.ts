@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, TransactionType, PaymentType } from '@wallet/db'
-import { ok, created, badRequest, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, created, badRequest, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
+import { assertOwned } from '@/lib/auth/ownership'
 import { balanceDelta } from '@/lib/account-balance'
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -32,6 +34,7 @@ const CreateTransactionSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
     const { searchParams } = new URL(req.url)
 
     const accountId = searchParams.get('accountId')
@@ -50,7 +53,7 @@ export async function GET(req: NextRequest) {
     const sortOrder = (searchParams.get('sortOrder') ?? 'desc') === 'asc' ? 'asc' : 'desc'
 
     const where = {
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: ctx.tenantId,
       ...(accountId && { accountId }),
       ...(type && { type }),
       ...(category && { category }),
@@ -111,12 +114,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = CreateTransactionSchema.parse(body)
+    await assertOwned(ctx, { accounts: [data.transferToId], recurring: [data.recurringId] })
 
     // Verify account belongs to tenant
     const account = await prisma.account.findFirst({
-      where: { id: data.accountId, tenantId: DEFAULT_TENANT_ID },
+      where: { id: data.accountId, tenantId: ctx.tenantId },
     })
     if (!account) return badRequest('Account not found or not accessible')
 
@@ -130,7 +136,7 @@ export async function POST(req: NextRequest) {
     const [transaction] = await prisma.$transaction([
       prisma.transaction.create({
         data: {
-          tenant:   { connect: { id: DEFAULT_TENANT_ID } },
+          tenant:   { connect: { id: ctx.tenantId } },
           account:  { connect: { id: data.accountId } },
           category: data.category,
           categoryRaw: data.categoryRaw ?? data.category,

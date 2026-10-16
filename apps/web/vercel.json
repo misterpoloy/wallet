@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack yarn@4.2.2 install",
+  "buildCommand": "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack yarn@4.2.2 build"
+}

@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma, Currency, IncomeType, PayFrequency } from '@wallet/db'
-import { ok, created, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, created, handleError } from '@/lib/api/response'
+import { requireCtx, requireWriter } from '@/lib/auth/ctx'
 
 const CreateSchema = z.object({
   name:        z.string().min(1).max(100),
@@ -18,8 +19,9 @@ const CreateSchema = z.object({
 
 export async function GET() {
   try {
+    const ctx = await requireCtx()
     const sources = await prisma.incomeSource.findMany({
-      where: { tenantId: DEFAULT_TENANT_ID },
+      where: { tenantId: ctx.tenantId },
       include: {
         entries: { orderBy: { period: 'desc' } },
         account: { select: { id: true, name: true, institution: true } },
@@ -32,11 +34,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
+    requireWriter(ctx)
     const body = await req.json()
     const data = CreateSchema.parse(body)
     const source = await prisma.incomeSource.create({
       data: {
-        tenantId:    DEFAULT_TENANT_ID,
+        tenantId:    ctx.tenantId,
         name:        data.name,
         type:        data.type,
         employer:    data.employer,

@@ -17,7 +17,7 @@ import {
   Landmark,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
-import { currentUser } from '@/lib/mock-data'
+import type { ShellUser } from './types'
 
 type NavItem  = { href: string; icon: React.ElementType; label: string }
 type NavGroup = { label: string; items: NavItem[] }
@@ -54,7 +54,7 @@ const BOTTOM_ITEMS: NavItem[] = [
   { href: '/settings', icon: Settings,   label: 'Settings' },
 ]
 
-export function Sidebar() {
+export function Sidebar({ user: currentUser }: { user: ShellUser }) {
   const pathname = usePathname()
 
   const isActive = (href: string) =>

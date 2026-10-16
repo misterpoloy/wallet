@@ -13,9 +13,9 @@ import { formatMoney, cn } from '@/lib/utils'
 import { creditCardStats } from '@/lib/account-balance'
 import { getCardNetworkAsset, getCardNetworkLabel } from '@/lib/card-network'
 import { dayKeyInTz, DEFAULT_TIMEZONE } from '@/lib/timezone'
+import { getServerCtx } from '@/lib/auth/ctx'
 
 export const dynamic = 'force-dynamic'
-const TENANT = 'tenant_portiz'
 
 function authorLabel(by: string | null | undefined) {
   if (!by) return { label: 'System', isAgent: true }
@@ -44,9 +44,10 @@ export default async function CreditCardDetailPage({
   params: { id: string }
   searchParams: { month?: string }
 }) {
+  const { tenantId: TENANT, userId } = await getServerCtx()
   const [card, userRow] = await Promise.all([
     prisma.account.findFirst({ where: { id: params.id, tenantId: TENANT, accountType: 'credit_card' } }),
-    prisma.user.findFirst({ where: { email: 'jp@calaps.com' }, select: { timezone: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
   ])
   if (!card) notFound()
   const tz = userRow?.timezone ?? DEFAULT_TIMEZONE

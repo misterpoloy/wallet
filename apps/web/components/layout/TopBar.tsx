@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CheckSquare, ChevronDown, Search, Bell, ExternalLink } from 'lucide-react'
+import { CheckSquare, ChevronDown, Crown, Search, Bell, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { currentUser } from '@/lib/mock-data'
+import type { ShellUser } from './types'
+import { useMansa } from '@/components/mansa/MansaProvider'
 
 // ── Waffle icon (Microsoft-style 3×3 grid) ───────────────────────────────────
 function WaffleIcon({ className }: { className?: string }) {
@@ -156,9 +157,10 @@ function AppLauncher({ activeAppId, onClose }: { activeAppId: string; onClose: (
 }
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
-export function TopBar() {
+export function TopBar({ user: currentUser }: { user: ShellUser }) {
   const [launcherOpen, setLauncherOpen] = useState(false)
   const pathname = usePathname()
+  const mansa = useMansa()
 
   // Determine active app (always wallet for now)
   const activeApp = APPS[0]
@@ -212,6 +214,21 @@ export function TopBar() {
 
       {/* ── Right: actions + user ───────────────────────────────────────────── */}
       <div className="flex items-center h-full pr-3 gap-1">
+        {/* Mansa Musa */}
+        {mansa.enabled && (
+          <button
+            onClick={mansa.toggle}
+            title="Mansa Musa (⌘J)"
+            className={cn(
+              'flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[12px] font-medium transition-colors',
+              mansa.open ? 'bg-amber-400/15 text-amber-300' : 'text-amber-300/80 hover:bg-white/[0.06]'
+            )}
+          >
+            <Crown className="w-[14px] h-[14px]" />
+            <span className="hidden sm:inline">Mansa Musa</span>
+          </button>
+        )}
+
         {/* Search */}
         <button className="w-8 h-8 flex items-center justify-center rounded-lg text-white/35 hover:text-white/70 hover:bg-white/[0.06] transition-colors">
           <Search className="w-[15px] h-[15px]" />

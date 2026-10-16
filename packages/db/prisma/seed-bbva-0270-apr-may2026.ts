@@ -17,7 +17,7 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 const ACCOUNT_ID = 'acc_bbva_0270'
-const TENANT_ID  = 'tenant_portiz'
+const TENANT_ID  = process.env.TENANT_ID ?? 'tenant_portiz'
 
 // ── Transaction list parsed from the PDF ─────────────────────────────────────
 const TRANSACTIONS = [

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@wallet/db'
-import { ok, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
+import { ok, handleError } from '@/lib/api/response'
+import { requireCtx } from '@/lib/auth/ctx'
 
 // ─── GET /api/dashboard ───────────────────────────────────────────────────────
 // Returns everything the dashboard needs in a single request:
@@ -12,6 +13,7 @@ import { ok, handleError, DEFAULT_TENANT_ID } from '@/lib/api/response'
 
 export async function GET(req: NextRequest) {
   try {
+    const ctx = await requireCtx()
     const { searchParams } = new URL(req.url)
     const now = new Date()
     const year = parseInt(searchParams.get('year') ?? String(now.getFullYear()))
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // ── Accounts with balances ────────────────────────────────────────────────
     const accounts = await prisma.account.findMany({
-      where: { tenantId: DEFAULT_TENANT_ID, isActive: true },
+      where: { tenantId: ctx.tenantId, isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     })
 
@@ -69,7 +71,7 @@ export async function GET(req: NextRequest) {
     // ── KPI: Month spend (MXN expenses, current month, non-transfer) ──────────
     const monthSpend = await prisma.transaction.aggregate({
       where: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: ctx.tenantId,
         type: 'expense',
         isTransfer: false,
         refCurrency: 'MXN',
@@ -87,7 +89,7 @@ export async function GET(req: NextRequest) {
         EXTRACT(MONTH FROM date)::int AS month,
         SUM("refAmount")::float       AS total
       FROM "Transaction"
-      WHERE "tenantId" = ${DEFAULT_TENANT_ID}
+      WHERE "tenantId" = ${ctx.tenantId}
         AND type = 'expense'
         AND "isTransfer" = false
         AND "refCurrency" = 'MXN'
@@ -102,7 +104,7 @@ export async function GET(req: NextRequest) {
     >`
       SELECT category, SUM("refAmount")::float AS total
       FROM "Transaction"
-      WHERE "tenantId" = ${DEFAULT_TENANT_ID}
+      WHERE "tenantId" = ${ctx.tenantId}
         AND type = 'expense'
         AND "isTransfer" = false
         AND date >= ${monthStart}
@@ -114,7 +116,7 @@ export async function GET(req: NextRequest) {
 
     // ── Recent transactions ───────────────────────────────────────────────────
     const recentTransactions = await prisma.transaction.findMany({
-      where: { tenantId: DEFAULT_TENANT_ID, isTransfer: false },
+      where: { tenantId: ctx.tenantId, isTransfer: false },
       include: {
         account: {
           select: { id: true, name: true, institution: true, color: true, colorEnd: true, currency: true, lastFour: true },
